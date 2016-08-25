@@ -5,3 +5,7 @@ rcpp_hello <- function() {
     .Call('RMWreg_rcpp_hello', PACKAGE = 'RMWreg')
 }
 
+HiddenMCMC_WEI <- function(N, thin, burn, Time, Cens, X, hyp1_gam, hyp2_gam, beta0, gam0, LSbeta0, LSgam0, ar, FixGam, FixBetaJ, StoreAdapt, EndAdapt, PrintProgress, Adapt) {
+    .Call('RMWreg_HiddenMCMC_WEI', PACKAGE = 'RMWreg', N, thin, burn, Time, Cens, X, hyp1_gam, hyp2_gam, beta0, gam0, LSbeta0, LSgam0, ar, FixGam, FixBetaJ, StoreAdapt, EndAdapt, PrintProgress, Adapt)
+}
+
