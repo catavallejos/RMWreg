@@ -1,2 +1,5 @@
 version 0.0.2: (2016-08-25)
 - Full MCMC and reduced variations running for Weibul model
+
+version 0.0.3: (2016-08-26)
+- Template for generic RMWreg MCMC sampler has been added
