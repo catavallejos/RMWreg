@@ -16,9 +16,9 @@ BEGIN_RCPP
     return __result;
 END_RCPP
 }
-// HiddenMCMC_WEI
-Rcpp::List HiddenMCMC_WEI(int N, int thin, int burn, NumericVector Time, NumericVector Cens, NumericMatrix X, double hyp1_gam, double hyp2_gam, NumericVector beta0, double gam0, NumericVector LSbeta0, double LSgam0, double ar, int FixGam, int FixBetaJ, int StoreAdapt, int EndAdapt, int PrintProgress, int Adapt);
-RcppExport SEXP RMWreg_HiddenMCMC_WEI(SEXP NSEXP, SEXP thinSEXP, SEXP burnSEXP, SEXP TimeSEXP, SEXP CensSEXP, SEXP XSEXP, SEXP hyp1_gamSEXP, SEXP hyp2_gamSEXP, SEXP beta0SEXP, SEXP gam0SEXP, SEXP LSbeta0SEXP, SEXP LSgam0SEXP, SEXP arSEXP, SEXP FixGamSEXP, SEXP FixBetaJSEXP, SEXP StoreAdaptSEXP, SEXP EndAdaptSEXP, SEXP PrintProgressSEXP, SEXP AdaptSEXP) {
+// HiddenWEI_MCMC
+Rcpp::List HiddenWEI_MCMC(int N, int thin, int burn, NumericVector Time, NumericVector Event, NumericMatrix X, double hyp1_gam, double hyp2_gam, NumericVector beta0, double gam0, NumericVector LSbeta0, double LSgam0, double ar, int FixGam, int FixBetaJ, int StoreAdapt, int EndAdapt, int PrintProgress, int Adapt);
+RcppExport SEXP RMWreg_HiddenWEI_MCMC(SEXP NSEXP, SEXP thinSEXP, SEXP burnSEXP, SEXP TimeSEXP, SEXP EventSEXP, SEXP XSEXP, SEXP hyp1_gamSEXP, SEXP hyp2_gamSEXP, SEXP beta0SEXP, SEXP gam0SEXP, SEXP LSbeta0SEXP, SEXP LSgam0SEXP, SEXP arSEXP, SEXP FixGamSEXP, SEXP FixBetaJSEXP, SEXP StoreAdaptSEXP, SEXP EndAdaptSEXP, SEXP PrintProgressSEXP, SEXP AdaptSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;
@@ -26,7 +26,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type thin(thinSEXP);
     Rcpp::traits::input_parameter< int >::type burn(burnSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type Time(TimeSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type Cens(CensSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type Event(EventSEXP);
     Rcpp::traits::input_parameter< NumericMatrix >::type X(XSEXP);
     Rcpp::traits::input_parameter< double >::type hyp1_gam(hyp1_gamSEXP);
     Rcpp::traits::input_parameter< double >::type hyp2_gam(hyp2_gamSEXP);
@@ -41,13 +41,13 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type EndAdapt(EndAdaptSEXP);
     Rcpp::traits::input_parameter< int >::type PrintProgress(PrintProgressSEXP);
     Rcpp::traits::input_parameter< int >::type Adapt(AdaptSEXP);
-    __result = Rcpp::wrap(HiddenMCMC_WEI(N, thin, burn, Time, Cens, X, hyp1_gam, hyp2_gam, beta0, gam0, LSbeta0, LSgam0, ar, FixGam, FixBetaJ, StoreAdapt, EndAdapt, PrintProgress, Adapt));
+    __result = Rcpp::wrap(HiddenWEI_MCMC(N, thin, burn, Time, Event, X, hyp1_gam, hyp2_gam, beta0, gam0, LSbeta0, LSgam0, ar, FixGam, FixBetaJ, StoreAdapt, EndAdapt, PrintProgress, Adapt));
     return __result;
 END_RCPP
 }
-// HiddenMCMC_RMWreg
-Rcpp::List HiddenMCMC_RMWreg(int N, int thin, int burn, NumericVector Time, NumericVector Cens, NumericMatrix X, String mixing, double const& hyp1_gam, double const& hyp2_gam, String const& typ_theta, double const& hyp_theta, NumericVector beta0, double gam0, double theta0, int Adapt, double ar, int StoreAdapt, int EndAdapt, NumericVector LSbeta0, double LSgam0, double LStheta0, int FixBetaJ, int FixGam, int FixTheta, int PrintProgress);
-RcppExport SEXP RMWreg_HiddenMCMC_RMWreg(SEXP NSEXP, SEXP thinSEXP, SEXP burnSEXP, SEXP TimeSEXP, SEXP CensSEXP, SEXP XSEXP, SEXP mixingSEXP, SEXP hyp1_gamSEXP, SEXP hyp2_gamSEXP, SEXP typ_thetaSEXP, SEXP hyp_thetaSEXP, SEXP beta0SEXP, SEXP gam0SEXP, SEXP theta0SEXP, SEXP AdaptSEXP, SEXP arSEXP, SEXP StoreAdaptSEXP, SEXP EndAdaptSEXP, SEXP LSbeta0SEXP, SEXP LSgam0SEXP, SEXP LStheta0SEXP, SEXP FixBetaJSEXP, SEXP FixGamSEXP, SEXP FixThetaSEXP, SEXP PrintProgressSEXP) {
+// HiddenRMWreg_MCMC
+Rcpp::List HiddenRMWreg_MCMC(int N, int thin, int burn, NumericVector Time, NumericVector Event, NumericMatrix X, String mixing, double const& hyp1_gam, double const& hyp2_gam, String const& PriorCV, double const& hyp_theta, NumericVector beta0, double gam0, double theta0, int Adapt, double ar, int StoreAdapt, int EndAdapt, NumericVector LSbeta0, double LSgam0, double LStheta0, int FixBetaJ, int FixGam, int FixTheta, int PrintProgress);
+RcppExport SEXP RMWreg_HiddenRMWreg_MCMC(SEXP NSEXP, SEXP thinSEXP, SEXP burnSEXP, SEXP TimeSEXP, SEXP EventSEXP, SEXP XSEXP, SEXP mixingSEXP, SEXP hyp1_gamSEXP, SEXP hyp2_gamSEXP, SEXP PriorCVSEXP, SEXP hyp_thetaSEXP, SEXP beta0SEXP, SEXP gam0SEXP, SEXP theta0SEXP, SEXP AdaptSEXP, SEXP arSEXP, SEXP StoreAdaptSEXP, SEXP EndAdaptSEXP, SEXP LSbeta0SEXP, SEXP LSgam0SEXP, SEXP LStheta0SEXP, SEXP FixBetaJSEXP, SEXP FixGamSEXP, SEXP FixThetaSEXP, SEXP PrintProgressSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;
@@ -55,12 +55,12 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type thin(thinSEXP);
     Rcpp::traits::input_parameter< int >::type burn(burnSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type Time(TimeSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type Cens(CensSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type Event(EventSEXP);
     Rcpp::traits::input_parameter< NumericMatrix >::type X(XSEXP);
     Rcpp::traits::input_parameter< String >::type mixing(mixingSEXP);
     Rcpp::traits::input_parameter< double const& >::type hyp1_gam(hyp1_gamSEXP);
     Rcpp::traits::input_parameter< double const& >::type hyp2_gam(hyp2_gamSEXP);
-    Rcpp::traits::input_parameter< String const& >::type typ_theta(typ_thetaSEXP);
+    Rcpp::traits::input_parameter< String const& >::type PriorCV(PriorCVSEXP);
     Rcpp::traits::input_parameter< double const& >::type hyp_theta(hyp_thetaSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type beta0(beta0SEXP);
     Rcpp::traits::input_parameter< double >::type gam0(gam0SEXP);
@@ -76,7 +76,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type FixGam(FixGamSEXP);
     Rcpp::traits::input_parameter< int >::type FixTheta(FixThetaSEXP);
     Rcpp::traits::input_parameter< int >::type PrintProgress(PrintProgressSEXP);
-    __result = Rcpp::wrap(HiddenMCMC_RMWreg(N, thin, burn, Time, Cens, X, mixing, hyp1_gam, hyp2_gam, typ_theta, hyp_theta, beta0, gam0, theta0, Adapt, ar, StoreAdapt, EndAdapt, LSbeta0, LSgam0, LStheta0, FixBetaJ, FixGam, FixTheta, PrintProgress));
+    __result = Rcpp::wrap(HiddenRMWreg_MCMC(N, thin, burn, Time, Event, X, mixing, hyp1_gam, hyp2_gam, PriorCV, hyp_theta, beta0, gam0, theta0, Adapt, ar, StoreAdapt, EndAdapt, LSbeta0, LSgam0, LStheta0, FixBetaJ, FixGam, FixTheta, PrintProgress));
     return __result;
 END_RCPP
 }

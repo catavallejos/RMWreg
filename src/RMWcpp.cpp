@@ -599,7 +599,7 @@ arma::vec GRWMH_RMW_beta_j(double const& omega2,
                            int const& j,
                            arma::vec const& beta0,
                            arma::vec const& Time,
-                           arma::vec const& Cens,
+                           arma::vec const& Event,
                            arma::mat const& X,
                            double const& gam,
                            arma::vec const& lambda,
@@ -617,7 +617,7 @@ arma::vec GRWMH_RMW_beta_j(double const& omega2,
   double y = R::rnorm(0,1) * sqrt(omega2) + beta0(j);
   double u = R::runif(0,1);
   // ACCEPTANCE STEP
-  double log_aux = (beta0(j) - y) * gam * sum(X.col(j) % Cens);
+  double log_aux = (beta0(j) - y) * gam * sum(X.col(j) % Event);
   log_aux += sum( SumOtherEffects % pow(Time,gam) % lambda % (exp(-gam * beta0(j) * X.col(j)) - exp(-gam * y * X.col(j))));
   if(log(u) < log_aux) { out(0) = y; out(1) = 1;}
   if(log(u) >= log_aux) { out(0) = beta0(j); out(1) = 0;}
@@ -633,7 +633,7 @@ double alpha_beta_j(arma::vec const& beta0,
                     arma::vec const& beta1,
                     double const& gam,
                     arma::vec const& Time,
-                    arma::vec const& Cens,
+                    arma::vec const& Event,
                     arma::mat const& X,
                     arma::vec const& lambda,
                     int const& j)
@@ -643,7 +643,7 @@ double alpha_beta_j(arma::vec const& beta0,
   arma::vec SumOtherEffects = exp( - gam * (Xj * bj) );
 
   // ACCEPTANCE PROBABILITY
-  double log_aux = (beta0(j) - beta1(j)) * gam * sum(X.col(j) % Cens);
+  double log_aux = (beta0(j) - beta1(j)) * gam * sum(X.col(j) % Event);
   log_aux += sum( SumOtherEffects % pow(Time,gam) % lambda % (exp(-gam * beta0(j) * X.col(j)) - exp(-gam * beta1(j) * X.col(j))));
   log_aux = exp(log_aux);
 
@@ -658,12 +658,12 @@ double alpha_beta_j(arma::vec const& beta0,
 arma::vec GRWMH_RMW_gam(double const& omega2,
                          double const& gam0,
                          arma::vec const& Time,
-                         arma::vec const& Cens,
+                         arma::vec const& Event,
                          arma::mat const& X,
                          arma::vec const& beta,
                          double const& theta,
                          arma::vec const& lambda,
-                         String const& typ_theta,
+                         String const& PriorCV,
                          double const& hyp_theta,
                          double const& hyp1_gam,
                          double const& hyp2_gam,
@@ -687,13 +687,13 @@ arma::vec GRWMH_RMW_gam(double const& omega2,
     // ACCEPTANCE STEP
     else
     {
-      double log_aux = sum(Cens) * log(y / gam0);
-      log_aux += (y-gam0) * sum( Cens % (log(Time) - X * beta));
+      double log_aux = sum(Event) * log(y / gam0);
+      log_aux += (y-gam0) * sum( Event % (log(Time) - X * beta));
       log_aux -= sum(lambda % (pow(exp(-X*beta) % Time, y) - pow(exp(-X*beta) % Time, gam0)));
       if(FIX_THETA == 0)
       {
-        log_aux += LogPriorTheta(theta, y, hyp_theta, typ_theta, mixing);
-        log_aux -= LogPriorTheta(theta, gam0, hyp_theta, typ_theta, mixing);
+        log_aux += LogPriorTheta(theta, y, hyp_theta, PriorCV, mixing);
+        log_aux -= LogPriorTheta(theta, gam0, hyp_theta, PriorCV, mixing);
       }
       log_aux += R::dgamma(y, hyp1_gam, hyp2_gam, 1);
       log_aux -= R::dgamma(gam0, hyp1_gam, hyp2_gam, 1);
@@ -719,12 +719,12 @@ arma::vec GRWMH_RMW_gam(double const& omega2,
 double alpha_gam(double const& gam0,
                  double const& gam1,
                  arma::vec const& Time,
-                 arma::vec const& Cens,
+                 arma::vec const& Event,
                  arma::mat const& X,
                  arma::vec const& beta,
                  double const& theta,
                  arma::vec const& lambda,
-                 String const& typ_theta,
+                 String const& PriorCV,
                  double const& hyp_theta,
                  double const& hyp1_gam,
                  double const& hyp2_gam,
@@ -736,13 +736,13 @@ double alpha_gam(double const& gam0,
   if(gam1 < lower_bound) { log_aux = 0; }
   else
   {
-    log_aux = sum(Cens) * log(gam1/gam0);
-    log_aux += (gam1 - gam0) * sum( Cens % (log(Time) - X * beta));
+    log_aux = sum(Event) * log(gam1/gam0);
+    log_aux += (gam1 - gam0) * sum( Event % (log(Time) - X * beta));
     log_aux -= sum(lambda % (pow(exp(-X*beta) % Time, gam1) - pow(exp(-X*beta) % Time, gam0)));
     if(FIX_THETA == 0)
     {
-      log_aux += LogPriorTheta(theta, gam1, hyp_theta, typ_theta, mixing);
-      log_aux -= LogPriorTheta(theta, gam0, hyp_theta, typ_theta, mixing);
+      log_aux += LogPriorTheta(theta, gam1, hyp_theta, PriorCV, mixing);
+      log_aux -= LogPriorTheta(theta, gam0, hyp_theta, PriorCV, mixing);
     }
     log_aux += R::dgamma(gam1, hyp1_gam, hyp2_gam, 1);
     log_aux -= R::dgamma(gam0, hyp1_gam, hyp2_gam, 1);
@@ -768,17 +768,17 @@ double alpha_gam(double const& gam0,
 // LOG-LIKELIHOOD
 // Debug: function tested to match original R implementation
 double LogLikWEI(arma::vec const& Time,
-                 arma::vec const& Cens,
+                 arma::vec const& Event,
                  arma::mat const& X,
                  arma::vec const& beta,
                  double const& gam,
                  int const& EXP)
 {
   arma::vec Rate = exp(- gam * X * beta);
-  arma::vec out = Cens % (log(Rate) - Rate % pow(Time, gam)) + (1-Cens) % (- Rate % pow(Time,gam));
+  arma::vec out = Event % (log(Rate) - Rate % pow(Time, gam)) + (1-Event) % (- Rate % pow(Time,gam));
   if(EXP == 0)
   {
-    out += log(gam) * Cens + (gam-1) * Cens % log(Time);
+    out += log(gam) * Event + (gam-1) * Event % log(Time);
   }
   return(sum(out));
 }
@@ -788,11 +788,11 @@ double LogLikWEI(arma::vec const& Time,
 // Argument 'FixGam' added to replace 'MCMCR.WEI.gam' function
 // Argument 'FixBetaJ' added to replace 'MCMCR.WEI.betaJ.gam' function
 // [[Rcpp::export]]
-Rcpp::List HiddenMCMC_WEI(int N, // Total number of MCMC draws
+Rcpp::List HiddenWEI_MCMC(int N, // Total number of MCMC draws
                           int thin, // Thinning period for MCMC chain
                           int burn, // Burning period for MCMC chain
                           NumericVector Time,
-                          NumericVector Cens,
+                          NumericVector Event,
                           NumericMatrix X,
                           double hyp1_gam,
                           double hyp2_gam,
@@ -825,7 +825,7 @@ Rcpp::List HiddenMCMC_WEI(int N, // Total number of MCMC draws
 
   // TRANSFORMATION ONTO ARMA ELEMENTS
   arma::vec Time_arma = as_arma(Time);
-  arma::vec Cens_arma = as_arma(Cens);
+  arma::vec Event_arma = as_arma(Event);
   arma::mat X_arma = as_arma(X);
 
   // INITIALIZATION OF PARAMETER VALUES FOR MCMC RUN
@@ -869,8 +869,8 @@ Rcpp::List HiddenMCMC_WEI(int N, // Total number of MCMC draws
       if(j > FixBetaJ)
       {
         betaAux.row(j) = GRWMH_RMW_beta_j(exp(LSbetaAux(j)), j, betaAux.col(0),
-                    Time_arma, Cens_arma, X_arma,
-                    gamAux(0), lambdaAux, k, n).t();
+                                          Time_arma, Event_arma, X_arma,
+                                          gamAux(0), lambdaAux, k, n).t();
       }
       else { betaAux(j,1) = 0; }
     }
@@ -881,9 +881,9 @@ Rcpp::List HiddenMCMC_WEI(int N, // Total number of MCMC draws
       // UPDATE OF GAM: 1st ELEMENT IS THE UPDATE, 2nd ELEMENT IS THE ACCEPTANCE INDICATOR
       // THETA = 0 AS IT IS NOT REQUIRED
       gamAux = GRWMH_RMW_gam(exp(LSgamAux), gamAux(0),
-                             Time_arma, Cens_arma, X_arma,
+                             Time_arma, Event_arma, X_arma,
                              betaAux.col(0), 0, lambdaAux,
-                             "None", 0, hyp1_gam, hyp2_gam, // typ_theta, hyp_theta, hyp1_gam, hyp2_gam,
+                             "None", 0, hyp1_gam, hyp2_gam, // PriorCV, hyp_theta, hyp1_gam, hyp2_gam,
                              "None", 0.06, 1); // mixing, lower_bound, FIX_THETA
       PgamAux += gamAux(1); if(i>=burn) {gamAccept += gamAux(1);}
     }
@@ -985,16 +985,16 @@ Rcpp::List HiddenMCMC_WEI(int N, // Total number of MCMC draws
 // Argument 'FixGam' added to replace 'MCMCR.WEI.gam' function
 // Argument 'FixBetaJ' added to replace 'MCMCR.WEI.betaJ.gam' function
 // [[Rcpp::export]]
-Rcpp::List HiddenMCMC_RMWreg(int N, // Total number of MCMC draws
+Rcpp::List HiddenRMWreg_MCMC(int N, // Total number of MCMC draws
                              int thin, // Thinning period for MCMC chain
                              int burn, // Burning period for MCMC chain
                              NumericVector Time,
-                             NumericVector Cens,
+                             NumericVector Event,
                              NumericMatrix X,
                              String mixing,
                              double const& hyp1_gam,
                              double const& hyp2_gam,
-                             String const& typ_theta,
+                             String const& PriorCV,
                              double const& hyp_theta,
                              NumericVector beta0,
                              double gam0,
@@ -1006,7 +1006,7 @@ Rcpp::List HiddenMCMC_RMWreg(int N, // Total number of MCMC draws
                              NumericVector LSbeta0,
                              double LSgam0,
                              double LStheta0,
-                             int FixBetaJ, // If FixBeta = -1, all Betas are updated. Else beta[1],...,beta[J] are fixed
+                             int FixBetaJ, // If FixBeta = 0, all Betas are updated. Else beta[1],...,beta[J] are fixed
                              int FixGam,
                              int FixTheta,
                              int PrintProgress)
@@ -1030,7 +1030,7 @@ Rcpp::List HiddenMCMC_RMWreg(int N, // Total number of MCMC draws
 
   // TRANSFORMATION ONTO ARMA ELEMENTS
   arma::vec Time_arma = as_arma(Time);
-  arma::vec Cens_arma = as_arma(Cens);
+  arma::vec Event_arma = as_arma(Event);
   arma::mat X_arma = as_arma(X);
 
   // INITIALIZATION OF PARAMETER VALUES FOR MCMC RUN
@@ -1073,10 +1073,10 @@ Rcpp::List HiddenMCMC_RMWreg(int N, // Total number of MCMC draws
     // UPDATE OF BETA: 1st COLUMN IS THE UPDATE, 2nd COLUMN IS THE ACCEPTANCE INDICATOR
     for(j=0; j < k; j++)
     {
-      if(j > FixBetaJ)
+      if(j > FixBetaJ - 1)
       {
         betaAux.row(j) = GRWMH_RMW_beta_j(exp(LSbetaAux(j)), j, betaAux.col(0),
-                                          Time_arma, Cens_arma, X_arma,
+                                          Time_arma, Event_arma, X_arma,
                                           gamAux(0), lambdaAux, k, n).t();
       }
       else { betaAux(j,1) = 0; }
@@ -1087,9 +1087,9 @@ Rcpp::List HiddenMCMC_RMWreg(int N, // Total number of MCMC draws
     {
       // UPDATE OF GAM: 1st ELEMENT IS THE UPDATE, 2nd ELEMENT IS THE ACCEPTANCE INDICATOR
       gamAux = GRWMH_RMW_gam(exp(LSgamAux), gamAux(0),
-                             Time_arma, Cens_arma, X_arma,
+                             Time_arma, Event_arma, X_arma,
                              betaAux.col(0), thetaAux(0), lambdaAux,
-                             typ_theta, hyp_theta, hyp1_gam, hyp2_gam,
+                             PriorCV, hyp_theta, hyp1_gam, hyp2_gam,
                              mixing, 0.06, FixTheta); // lower_bound
       PgamAux += gamAux(1); if(i>=burn) {gamAccept += gamAux(1);}
     }

@@ -5,11 +5,11 @@ rcpp_hello <- function() {
     .Call('RMWreg_rcpp_hello', PACKAGE = 'RMWreg')
 }
 
-HiddenMCMC_WEI <- function(N, thin, burn, Time, Cens, X, hyp1_gam, hyp2_gam, beta0, gam0, LSbeta0, LSgam0, ar, FixGam, FixBetaJ, StoreAdapt, EndAdapt, PrintProgress, Adapt) {
-    .Call('RMWreg_HiddenMCMC_WEI', PACKAGE = 'RMWreg', N, thin, burn, Time, Cens, X, hyp1_gam, hyp2_gam, beta0, gam0, LSbeta0, LSgam0, ar, FixGam, FixBetaJ, StoreAdapt, EndAdapt, PrintProgress, Adapt)
+HiddenWEI_MCMC <- function(N, thin, burn, Time, Event, X, hyp1_gam, hyp2_gam, beta0, gam0, LSbeta0, LSgam0, ar, FixGam, FixBetaJ, StoreAdapt, EndAdapt, PrintProgress, Adapt) {
+    .Call('RMWreg_HiddenWEI_MCMC', PACKAGE = 'RMWreg', N, thin, burn, Time, Event, X, hyp1_gam, hyp2_gam, beta0, gam0, LSbeta0, LSgam0, ar, FixGam, FixBetaJ, StoreAdapt, EndAdapt, PrintProgress, Adapt)
 }
 
-HiddenMCMC_RMWreg <- function(N, thin, burn, Time, Cens, X, mixing, hyp1_gam, hyp2_gam, typ_theta, hyp_theta, beta0, gam0, theta0, Adapt, ar, StoreAdapt, EndAdapt, LSbeta0, LSgam0, LStheta0, FixBetaJ, FixGam, FixTheta, PrintProgress) {
-    .Call('RMWreg_HiddenMCMC_RMWreg', PACKAGE = 'RMWreg', N, thin, burn, Time, Cens, X, mixing, hyp1_gam, hyp2_gam, typ_theta, hyp_theta, beta0, gam0, theta0, Adapt, ar, StoreAdapt, EndAdapt, LSbeta0, LSgam0, LStheta0, FixBetaJ, FixGam, FixTheta, PrintProgress)
+HiddenRMWreg_MCMC <- function(N, thin, burn, Time, Event, X, mixing, hyp1_gam, hyp2_gam, PriorCV, hyp_theta, beta0, gam0, theta0, Adapt, ar, StoreAdapt, EndAdapt, LSbeta0, LSgam0, LStheta0, FixBetaJ, FixGam, FixTheta, PrintProgress) {
+    .Call('RMWreg_HiddenRMWreg_MCMC', PACKAGE = 'RMWreg', N, thin, burn, Time, Event, X, mixing, hyp1_gam, hyp2_gam, PriorCV, hyp_theta, beta0, gam0, theta0, Adapt, ar, StoreAdapt, EndAdapt, LSbeta0, LSgam0, LStheta0, FixBetaJ, FixGam, FixTheta, PrintProgress)
 }
 

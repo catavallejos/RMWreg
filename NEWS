@@ -3,3 +3,7 @@ version 0.0.2: (2016-08-25)
 
 version 0.0.3: (2016-08-26)
 - Template for generic RMWreg MCMC sampler has been added
+
+version 0.0.4: (2016-09-15)
+- RMWreg_MCMC function added (with advance options allowed)
+- Updates of mixing parameters are not yet implemented
