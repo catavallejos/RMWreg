@@ -980,6 +980,28 @@ Rcpp::List HiddenWEI_MCMC(int N, // Total number of MCMC draws
   }
 }
 
+// Sampling of mixing parameters
+// [[Rcpp::export]]
+arma::vec lambdaUpdate(String const& mixing,
+                       arma::vec const& Time,
+                       arma::vec const& Event,
+                       arma::mat const& X,
+                       arma::vec const& beta,
+                       double const& gam,
+                       double const& theta,
+                       int const& n)
+{
+  arma::vec lambda = arma::ones(n);
+
+  if(mixing == "Exponential")
+  {
+    arma::vec Scale = 1 / (1 + pow(exp(-X*beta) % Time, gam));
+    for(int i=0; i < n-1; i++) { lambda(i) = R::rgamma(1 + Event(i), Scale(i) );}
+  }
+
+  return lambda;
+}
+
 // MCMC ALGORITHM
 // Argument 'Adapt' added to replace 'MCMC.WEI.NonAdapt' function
 // Argument 'FixGam' added to replace 'MCMCR.WEI.gam' function
@@ -1017,6 +1039,7 @@ Rcpp::List HiddenRMWreg_MCMC(int N, // Total number of MCMC draws
   // OBJECTS WHERE DRAWS WILL BE STORED
   arma::mat beta = arma::zeros(Naux, k);
   arma::vec gam = arma::zeros(Naux);
+  arma::mat lambda = arma::zeros(Naux, n);
   arma::vec theta = arma::zeros(Naux);
   arma::mat LSbeta; arma::vec LSgam; arma::vec LStheta;
 
@@ -1094,10 +1117,19 @@ Rcpp::List HiddenRMWreg_MCMC(int N, // Total number of MCMC draws
       PgamAux += gamAux(1); if(i>=burn) {gamAccept += gamAux(1);}
     }
 
-    if((FixTheta == 0) & (mixing != "None"))
+    if((FixTheta == 0) & (mixing != "None") & (mixing != "Exponential"))
     {
 //      thetaAux =
     }
+
+    // Updating mixing parameters
+    lambdaAux = lambdaUpdate(mixing,
+                             Time_arma, Event_arma, X_arma,
+                             betaAux.col(0), gamAux(0), thetaAux(0), n);
+//    if( i%Q == 0 )
+//    {
+//
+//    }
 
     // STOP ADAPTING THE PROPOSAL VARIANCES AFTER EndAdapt ITERATIONS
     if((i < EndAdapt) & (Adapt == 1))
@@ -1125,6 +1157,7 @@ Rcpp::List HiddenRMWreg_MCMC(int N, // Total number of MCMC draws
     {
       beta.row(i/thin - burn/thin) = betaAux.col(0).t();
       gam(i/thin - burn/thin) = gamAux(0);
+      lambda.row(i/thin - burn/thin) = lambdaAux.t();
 
       if(StoreAdapt == 1)
       {
@@ -1178,6 +1211,7 @@ Rcpp::List HiddenRMWreg_MCMC(int N, // Total number of MCMC draws
     return(Rcpp::List::create(
            Rcpp::Named("beta") = beta,
            Rcpp::Named("gam") = gam,
+           Rcpp::Named("lambda") = lambda,
            Rcpp::Named("ls.beta")=LSbeta,
            Rcpp::Named("ls.gam")=LSgam));
   }
@@ -1186,6 +1220,7 @@ Rcpp::List HiddenRMWreg_MCMC(int N, // Total number of MCMC draws
     // OUTPUT (AS A LIST)
     return(Rcpp::List::create(
            Rcpp::Named("beta") = beta,
-           Rcpp::Named("gam") = gam));
+           Rcpp::Named("gam") = gam,
+           Rcpp::Named("lambda") = lambda));
   }
 }

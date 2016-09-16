@@ -49,11 +49,11 @@
 #' X=cbind(Intercept,x1); rm(Intercept)
 #' Time=alloauto$time; Event=alloauto$delta
 #'
-#' RMWreg_MCMC(N = 100, Thin = 2, Burn = 50,
-#'             Time, Event, X,
-#'             Mixing = "None", BaseModel = "Weibull",
-#'             PriorCV = "Pareto", PriorMeanCV = 1.5,
-#'             Hyp1Gam = 1, Hyp2Gam = 1)
+#' Chain <- RMWreg_MCMC(N = 100, Thin = 2, Burn = 50,
+#'                      Time, Event, X,
+#'                      Mixing = "None", BaseModel = "Weibull",
+#'                      PriorCV = "Pareto", PriorMeanCV = 1.5,
+#'                      Hyp1Gam = 1, Hyp2Gam = 1)
 #'
 #' @author Catalina A. Vallejos \email{cvallejos@@turing.ac.uk}
 RMWreg_MCMC <- function(N, Thin, Burn,

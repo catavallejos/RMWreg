@@ -6,16 +6,6 @@
 
 using namespace Rcpp;
 
-// rcpp_hello
-List rcpp_hello();
-RcppExport SEXP RMWreg_rcpp_hello() {
-BEGIN_RCPP
-    Rcpp::RObject __result;
-    Rcpp::RNGScope __rngScope;
-    __result = Rcpp::wrap(rcpp_hello());
-    return __result;
-END_RCPP
-}
 // HiddenWEI_MCMC
 Rcpp::List HiddenWEI_MCMC(int N, int thin, int burn, NumericVector Time, NumericVector Event, NumericMatrix X, double hyp1_gam, double hyp2_gam, NumericVector beta0, double gam0, NumericVector LSbeta0, double LSgam0, double ar, int FixGam, int FixBetaJ, int StoreAdapt, int EndAdapt, int PrintProgress, int Adapt);
 RcppExport SEXP RMWreg_HiddenWEI_MCMC(SEXP NSEXP, SEXP thinSEXP, SEXP burnSEXP, SEXP TimeSEXP, SEXP EventSEXP, SEXP XSEXP, SEXP hyp1_gamSEXP, SEXP hyp2_gamSEXP, SEXP beta0SEXP, SEXP gam0SEXP, SEXP LSbeta0SEXP, SEXP LSgam0SEXP, SEXP arSEXP, SEXP FixGamSEXP, SEXP FixBetaJSEXP, SEXP StoreAdaptSEXP, SEXP EndAdaptSEXP, SEXP PrintProgressSEXP, SEXP AdaptSEXP) {
@@ -42,6 +32,24 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type PrintProgress(PrintProgressSEXP);
     Rcpp::traits::input_parameter< int >::type Adapt(AdaptSEXP);
     __result = Rcpp::wrap(HiddenWEI_MCMC(N, thin, burn, Time, Event, X, hyp1_gam, hyp2_gam, beta0, gam0, LSbeta0, LSgam0, ar, FixGam, FixBetaJ, StoreAdapt, EndAdapt, PrintProgress, Adapt));
+    return __result;
+END_RCPP
+}
+// lambdaUpdate
+arma::vec lambdaUpdate(String const& mixing, arma::vec const& Time, arma::vec const& Event, arma::mat const& X, arma::vec const& beta, double const& gam, double const& theta, int const& n);
+RcppExport SEXP RMWreg_lambdaUpdate(SEXP mixingSEXP, SEXP TimeSEXP, SEXP EventSEXP, SEXP XSEXP, SEXP betaSEXP, SEXP gamSEXP, SEXP thetaSEXP, SEXP nSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< String const& >::type mixing(mixingSEXP);
+    Rcpp::traits::input_parameter< arma::vec const& >::type Time(TimeSEXP);
+    Rcpp::traits::input_parameter< arma::vec const& >::type Event(EventSEXP);
+    Rcpp::traits::input_parameter< arma::mat const& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< arma::vec const& >::type beta(betaSEXP);
+    Rcpp::traits::input_parameter< double const& >::type gam(gamSEXP);
+    Rcpp::traits::input_parameter< double const& >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< int const& >::type n(nSEXP);
+    __result = Rcpp::wrap(lambdaUpdate(mixing, Time, Event, X, beta, gam, theta, n));
     return __result;
 END_RCPP
 }
@@ -77,6 +85,16 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type FixTheta(FixThetaSEXP);
     Rcpp::traits::input_parameter< int >::type PrintProgress(PrintProgressSEXP);
     __result = Rcpp::wrap(HiddenRMWreg_MCMC(N, thin, burn, Time, Event, X, mixing, hyp1_gam, hyp2_gam, PriorCV, hyp_theta, beta0, gam0, theta0, Adapt, ar, StoreAdapt, EndAdapt, LSbeta0, LSgam0, LStheta0, FixBetaJ, FixGam, FixTheta, PrintProgress));
+    return __result;
+END_RCPP
+}
+// rcpp_hello
+List rcpp_hello();
+RcppExport SEXP RMWreg_rcpp_hello() {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    __result = Rcpp::wrap(rcpp_hello());
     return __result;
 END_RCPP
 }
