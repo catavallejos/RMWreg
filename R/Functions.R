@@ -46,18 +46,18 @@
 #' data(alloauto)
 #' n=dim(alloauto)[1]; k=2
 #' Intercept=rep(1,times=n); x1=alloauto$type-1
-#' X=cbind(Intercept,x1); rm(Intercept)
+#' DesignMat=cbind(Intercept,x1); rm(Intercept)
 #' Time=alloauto$time; Event=alloauto$delta
 #'
 #' Chain <- RMWreg_MCMC(N = 100, Thin = 2, Burn = 50,
-#'                      Time, Event, X,
+#'                      Time, Event, DesignMat,
 #'                      Mixing = "None", BaseModel = "Weibull",
 #'                      PriorCV = "Pareto", PriorMeanCV = 1.5,
 #'                      Hyp1Gam = 1, Hyp2Gam = 1)
 #'
 #' @author Catalina A. Vallejos \email{cvallejos@@turing.ac.uk}
 RMWreg_MCMC <- function(N, Thin, Burn,
-                        Time, Event, X,
+                        Time, Event, DesignMat,
                         Mixing = "None",
                         BaseModel = "Weibull",
                         PriorCV = "Pareto", PriorMeanCV = 1.5,
@@ -65,7 +65,7 @@ RMWreg_MCMC <- function(N, Thin, Burn,
                         ... )
 {
   # No of samples and covariates
-  n = nrow(X); k = ncol(X)
+  n = nrow(DesignMat); k = ncol(DesignMat)
 
   # Validity checks for parameter values
   if (!(length(N) == 1 | length(Thin) == 1 | length(Burn) == 1))
@@ -100,10 +100,16 @@ RMWreg_MCMC <- function(N, Thin, Burn,
   else Start = list("beta0" = rnorm(k),
                     "gam0" = rexp(1,1)+1,
                     "theta0" = rexp(1,1)+1)
+  if(Mixing == "Gamma") {Start$theta0 = max(Start$theta0, 2/Start$gam0 + 1)}
+  if(Mixing == "InvGamma") {Start$theta0 = max(Start$theta0, 1 + 1)}
+
   if ("StartAdapt" %in% names(args)) { StartAdapt = args$StartAdapt }
   else StartAdapt = list("LSbeta0" = rep(0, times = k),
                          "LSgam0" = 0,
                          "LStheta0" = 0)
+
+  if("lambdaPeriod" %in% names(args)) { lambdaPeriod = args$lambdaPeriod }
+  else lambdaPeriod = 5
 
   # Additional parameters related to adaptive proposals
   if ("Adapt" %in% names(args)) { Adapt = args$Adapt }
@@ -130,11 +136,11 @@ RMWreg_MCMC <- function(N, Thin, Burn,
   if(Mixing %in% c("None", "Exponential")) {Start$theta0 = 0; FixTheta = TRUE}
 
   # Hyper-parameter for theta
-  if(PriorCV == "Pareto") { HypTheta = 1 / (PriorMeanCV - 1)} # E(cv) = 1 + 1/a
-  if(PriorCV == "TruncExp") { HypTheta = PriorMeanCV / (PriorMeanCV - 1)} # E(cv) = b/(b − 1)
+  if(PriorCV == "TruncExp") { HypTheta = 1 / (PriorMeanCV - 1)} # E(cv) = 1 + 1/a
+  if(PriorCV == "Pareto") { HypTheta = PriorMeanCV / (PriorMeanCV - 1)} # E(cv) = b/(b − 1)
 
   Time = system.time(Chain <- HiddenRMWreg_MCMC(N, Thin, Burn,
-                            Time, Event, X,
+                            Time, Event, DesignMat,
                             Mixing,
                             Hyp1Gam, Hyp2Gam,
                             PriorCV, HypTheta,
@@ -143,10 +149,10 @@ RMWreg_MCMC <- function(N, Thin, Burn,
                             as.numeric(StoreAdapt), StopAdapt,
                             StartAdapt$LSbeta0, StartAdapt$LSgam0, StartAdapt$LStheta0,
                             FixBetaJ, as.numeric(FixGam), as.numeric(FixTheta),
-                            as.numeric(PrintProgress)))
+                            as.numeric(PrintProgress), lambdaPeriod))
 
   cat("-------------------------------------------------------------------- \n")
-  cat("MCMC running time")
+  cat("MCMC running time \n")
   cat("-------------------------------------------------------------------- \n")
   print(Time)
   cat("\n")

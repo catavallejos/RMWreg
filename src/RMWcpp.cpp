@@ -759,6 +759,71 @@ double alpha_gam(double const& gam0,
   else { return(1);}
 }
 
+// GAUSSIAN RANDOM WALK METROPOLIS STEP FOR THETA
+// USE lambda=rep(1,times=n) FOR WEIBULL MODEL WITH MIXTURE
+// Debug: function tested to match original R implementation
+// Debug: includes GRWMH.RMWLN.gam function as a special case (rather than a separate function)
+arma::vec GRWMH_RMW_theta(double const& omega2,
+                          double const& theta0,
+                          double const& gam,
+                          arma::vec const& lambda,
+                          String const& PriorCV,
+                          double const& hyp_theta,
+                          String const& mixing,
+                          double const& n)
+{
+  // INITIALIZATION OF OUTPUT VARIABLES
+  arma::vec out(2);
+
+  // PROPOSAL STEP
+  double y = R::rnorm(0,1) * sqrt(omega2) + theta0;
+//  double y = exp(R::rnorm(0,1) * sqrt(omega2) + log(theta0));
+  double u = R::runif(0,1);
+
+  double log_aux;
+  if(mixing == "Gamma")
+  {
+    if(y <= 2/gam) {out(0) = theta0; out(1) = 0;}
+    else
+    {
+      log_aux = n * (y*log(y) - R::lgammafn(y) - theta0*log(theta0) + R::lgammafn(theta0));
+      log_aux += (y-theta0) * sum(log(lambda)) - (y-theta0) * sum(lambda);
+      log_aux += LogPriorTheta(y, gam, hyp_theta, PriorCV, mixing);
+      log_aux -= LogPriorTheta(theta0, gam, hyp_theta, PriorCV, mixing);
+//      // Extra correction for proposing on the log-scale
+//      log_aux += log(y) - log(theta0);
+      if(log(u) < log_aux) { out(0) = y; out(1) = 1; }
+      else { out(0) = theta0; out(1) = 0; }
+    }
+  }
+  if(mixing == "InvGamma")
+  {
+    if(y <= 1) {out(0) = theta0; out(1) = 0;}
+    else
+    {
+      log_aux = n * (R::lgammafn(theta0) - R::lgammafn(y)) + (theta0-y) * sum(log(lambda));
+      log_aux += LogPriorTheta(y, gam, hyp_theta, PriorCV, mixing);
+      log_aux -= LogPriorTheta(theta0, gam, hyp_theta, PriorCV, mixing);
+
+      if((arma::is_finite(log_aux)) & (log(u) < log_aux)) { out(0) = y; out(1) = 1; }
+      else { out(0) = theta0; out(1) = 0; }
+    }
+  }
+  if(mixing == "InvGauss")
+  {
+    log_aux = 0.5 * (pow(theta0,-2) - pow(y,-2)) * sum(lambda);
+    log_aux -= n * (pow(theta0,-1) - pow(y,-1));
+    log_aux += LogPriorTheta(y, gam, hyp_theta, PriorCV, mixing);
+    log_aux -= LogPriorTheta(theta0, gam, hyp_theta, PriorCV, mixing);
+
+    if((arma::is_finite(log_aux)) & (log(u) < log_aux)) { out(0) = y; out(1) = 1; }
+    else { out(0) = theta0; out(1) = 0; }
+  }
+
+  // OUTPUT
+  return(out);
+}
+
 // ################################################################################
 // ################################################################################
 // # FUNCTIONS SPECIFIC FOR WEIBULL MODEL
@@ -783,203 +848,6 @@ double LogLikWEI(arma::vec const& Time,
   return(sum(out));
 }
 
-// MCMC ALGORITHM
-// Argument 'Adapt' added to replace 'MCMC.WEI.NonAdapt' function
-// Argument 'FixGam' added to replace 'MCMCR.WEI.gam' function
-// Argument 'FixBetaJ' added to replace 'MCMCR.WEI.betaJ.gam' function
-// [[Rcpp::export]]
-Rcpp::List HiddenWEI_MCMC(int N, // Total number of MCMC draws
-                          int thin, // Thinning period for MCMC chain
-                          int burn, // Burning period for MCMC chain
-                          NumericVector Time,
-                          NumericVector Event,
-                          NumericMatrix X,
-                          double hyp1_gam,
-                          double hyp2_gam,
-                          NumericVector beta0,
-                          double gam0,
-                          NumericVector LSbeta0,
-                          double LSgam0,
-                          double ar,
-                          int FixGam, //
-                          int FixBetaJ, // If FixBeta = -1, all Betas are updated. Else beta[1],...,beta[J] are fixed
-                          int StoreAdapt,
-                          int EndAdapt,
-                          int PrintProgress,
-                          int Adapt)
-{
-  // NUMBER OF REGRESSORS, SAMPLE SIZE AND NUMBER OF STORED DRAWS
-  int k = beta0.size(); int n = Time.size(); int Naux = N/thin - burn/thin;
-  // OBJECTS WHERE DRAWS WILL BE STORED
-  arma::mat beta = arma::zeros(Naux, k);
-  arma::vec gam = arma::zeros(Naux);
-  arma::mat LSbeta;
-  arma::vec LSgam;
-
-  // LOG-PROPOSAL VARIANCES
-  if(StoreAdapt == 1)
-  {
-    LSbeta = arma::zeros(Naux, k);
-    LSgam = arma::zeros(Naux);
-  }
-
-  // TRANSFORMATION ONTO ARMA ELEMENTS
-  arma::vec Time_arma = as_arma(Time);
-  arma::vec Event_arma = as_arma(Event);
-  arma::mat X_arma = as_arma(X);
-
-  // INITIALIZATION OF PARAMETER VALUES FOR MCMC RUN
-  arma::mat betaAux = arma::zeros(k,2); betaAux.col(0) = as_arma(beta0);
-  arma::vec gamAux = arma::zeros(2); gamAux(0) = gam0;
-  arma::vec lambdaAux = arma::ones(n);
-
-  // INITIALIZATION OF ADAPTIVE VARIANCES
-  arma::vec LSbetaAux = as_arma(LSbeta0);
-  double LSgamAux = LSgam0 + 1 - 1; // +-1 to avoid rewriting LSgam0
-
-  // ACCEPTANCE RATES FOR ADAPTIVE METROPOLIS-HASTINGS UPDATES
-  arma::vec betaAccept = arma::zeros(k); arma::vec PbetaAux = arma::zeros(k);
-  double gamAccept = 0; double PgamAux = 0;
-
-  // BATCH INITIALIZATION FOR ADAPTIVE METROPOLIS UPDATES (RE-INITIALIZE EVERY 50 ITERATIONS)
-  int Ibatch = 0; int i; int j;
-
-  Rcpp::Rcout << "--------------------------------------------------------------------" << std::endl;
-  Rcpp::Rcout << "MCMC sampler has been started: " << N << " iterations to go." << std::endl;
-  Rcpp::Rcout << "--------------------------------------------------------------------" << std::endl;
-
-  // START OF MCMC LOOP
-  for (i=0; i < N; i++)
-  {
-
-    Rcpp::checkUserInterrupt();
-
-    if(i==burn)
-    {
-      Rcpp::Rcout << "--------------------------------------------------------------------" << std::endl;
-      Rcpp::Rcout << "End of burn-in period."<< std::endl;
-      Rcpp::Rcout << "--------------------------------------------------------------------" << std::endl;
-    }
-
-    Ibatch++;
-
-    // UPDATE OF BETA: 1st COLUMN IS THE UPDATE, 2nd COLUMN IS THE ACCEPTANCE INDICATOR
-    for(j=0; j < k; j++)
-    {
-      if(j > FixBetaJ)
-      {
-        betaAux.row(j) = GRWMH_RMW_beta_j(exp(LSbetaAux(j)), j, betaAux.col(0),
-                                          Time_arma, Event_arma, X_arma,
-                                          gamAux(0), lambdaAux, k, n).t();
-      }
-      else { betaAux(j,1) = 0; }
-    }
-    PbetaAux += betaAux.col(1); if(i>=burn) {betaAccept += betaAux.col(1);}
-
-    if(FixGam == 0)
-    {
-      // UPDATE OF GAM: 1st ELEMENT IS THE UPDATE, 2nd ELEMENT IS THE ACCEPTANCE INDICATOR
-      // THETA = 0 AS IT IS NOT REQUIRED
-      gamAux = GRWMH_RMW_gam(exp(LSgamAux), gamAux(0),
-                             Time_arma, Event_arma, X_arma,
-                             betaAux.col(0), 0, lambdaAux,
-                             "None", 0, hyp1_gam, hyp2_gam, // PriorCV, hyp_theta, hyp1_gam, hyp2_gam,
-                             "None", 0.06, 1); // mixing, lower_bound, FIX_THETA
-      PgamAux += gamAux(1); if(i>=burn) {gamAccept += gamAux(1);}
-    }
-    // STOP ADAPTING THE PROPOSAL VARIANCES AFTER EndAdapt ITERATIONS
-    if((i < EndAdapt) & (Adapt == 1))
-    {
-      // UPDATE OF PROPOSAL VARIANCES (ONLY EVERY 50 ITERATIONS)
-      if(Ibatch==50)
-      {
-        PbetaAux /= 50; PbetaAux = -1+2*arma::conv_to<arma::mat>::from(PbetaAux>ar);
-        LSbetaAux=LSbetaAux+PbetaAux*std::min(0.03,1/sqrt(i));
-        PbetaAux = arma::zeros(k);
-
-        if(FixGam == 0)
-        {
-          PgamAux /= 50; PgamAux = -1+2*(PgamAux>ar);
-          LSgamAux=LSgamAux+PgamAux*std::min(0.03,1/sqrt(i));
-          PgamAux = 0;
-        }
-
-        Ibatch = 0;
-
-      }
-    }
-
-    // STORAGE OF DRAWS
-    if((i%thin==0) & (i>=burn))
-    {
-      beta.row(i/thin - burn/thin) = betaAux.col(0).t();
-      gam(i/thin - burn/thin) = gamAux(0);
-
-      if(StoreAdapt == 1)
-      {
-        LSbeta.row(i/thin - burn/thin) = LSbetaAux.t();
-        LSgam(i/thin - burn/thin) = LSgamAux;
-      }
-    }
-
-    // PRINT IN CONSOLE SAMPLED VALUES FOR FEW SELECTED PARAMETERS
-    if((i%(2*thin) == 0) & (PrintProgress == 1))
-    {
-      Rcpp::Rcout << "--------------------------------------------------------------------" << std::endl;
-      Rcpp::Rcout << "MCMC iteration " << i << " out of " << N << " has been completed." << std::endl;
-      Rcpp::Rcout << "--------------------------------------------------------------------" << std::endl;
-      Rcpp::Rcout << "Current draws of some selected parameters are displayed below." << std::endl;
-      Rcpp::Rcout << "beta (1st element): " << betaAux(0,0) << std::endl;
-      Rcpp::Rcout << "gam: " << gamAux(0) << std::endl;
-      Rcpp::Rcout << "--------------------------------------------------------------------" << std::endl;
-      Rcpp::Rcout << "Current proposal variances for Metropolis Hastings updates (log-scale)." << std::endl;
-      Rcpp::Rcout << "LSbeta (1st element): " << LSbetaAux(0) << std::endl;
-      Rcpp::Rcout << "LSgam: " << LSgamAux << std::endl;
-    }
-  }
-
-  // ACCEPTANCE RATE CONSOLE OUTPUT
-  Rcpp::Rcout << " " << std::endl;
-  Rcpp::Rcout << "--------------------------------------------------------------------" << std::endl;
-  Rcpp::Rcout << "--------------------------------------------------------------------" << std::endl;
-  Rcpp::Rcout << "All " << N << " MCMC iterations have been completed." << std::endl;
-  Rcpp::Rcout << "--------------------------------------------------------------------" << std::endl;
-  Rcpp::Rcout << "--------------------------------------------------------------------" << std::endl;
-  Rcpp::Rcout << " " << std::endl;
-  // ACCEPTANCE RATE CONSOLE OUTPUT
-  Rcpp::Rcout << "--------------------------------------------------------------------" << std::endl;
-  Rcpp::Rcout << "Please see below a summary of the overall acceptance rates." << std::endl;
-  Rcpp::Rcout << "--------------------------------------------------------------------" << std::endl;
-  Rcpp::Rcout << " " << std::endl;
-
-  Rcpp::Rcout << "Minimum acceptance rate among beta[j]'s: " << min(betaAccept/(N-burn)) << std::endl;
-  Rcpp::Rcout << "Average acceptance rate among beta[j]'s: " << mean(betaAccept/(N-burn)) << std::endl;
-  Rcpp::Rcout << "Maximum acceptance rate among beta[j]'s: " << max(betaAccept/(N-burn)) << std::endl;
-  Rcpp::Rcout << " " << std::endl;
-  Rcpp::Rcout << "Acceptance rate for gam: " << gamAccept/(N-burn) << std::endl;
-  Rcpp::Rcout << " " << std::endl;
-  Rcpp::Rcout << "--------------------------------------------------------------------" << std::endl;
-  Rcpp::Rcout << " " << std::endl;
-
-  if(StoreAdapt == 1)
-  {
-    // OUTPUT (AS A LIST)
-    return(Rcpp::List::create(
-           Rcpp::Named("beta") = beta,
-           Rcpp::Named("gam") = gam,
-           Rcpp::Named("ls.beta")=LSbeta,
-           Rcpp::Named("ls.gam")=LSgam));
-  }
-
-  else
-  {
-    // OUTPUT (AS A LIST)
-    return(Rcpp::List::create(
-           Rcpp::Named("beta") = beta,
-           Rcpp::Named("gam") = gam));
-  }
-}
-
 // Sampling of mixing parameters
 // [[Rcpp::export]]
 arma::vec lambdaUpdate(String const& mixing,
@@ -992,11 +860,27 @@ arma::vec lambdaUpdate(String const& mixing,
                        int const& n)
 {
   arma::vec lambda = arma::ones(n);
+  arma::vec ScaleAux;
 
   if(mixing == "Exponential")
   {
-    arma::vec Scale = 1 / (1 + pow(exp(-X*beta) % Time, gam));
-    for(int i=0; i < n-1; i++) { lambda(i) = R::rgamma(1 + Event(i), Scale(i) );}
+    ScaleAux = 1 / (1 + pow(exp(-X*beta) % Time, gam));
+    for(int i=0; i < n; i++) { lambda(i) = R::rgamma(1 + Event(i), ScaleAux(i) );}
+  }
+  if(mixing == "Gamma")
+  {
+    ScaleAux = 1 / (theta + pow(exp(-X*beta) % Time, gam));
+    for(int i=0; i < n; i++) { lambda(i) = R::rgamma(theta + Event(i), ScaleAux(i) );}
+  }
+  if(mixing == "InvGamma")
+  {
+    ScaleAux = 2 * pow(exp(-X*beta) % Time, gam);
+    for(int i=0; i < n; i++) { lambda(i) = RgigDouble(-theta + Event(i), 2, ScaleAux(i));}
+  }
+  if(mixing == "InvGauss")
+  {
+    ScaleAux = 2 * pow(exp(-X*beta) % Time, gam) + pow(theta, -2);
+    for(int i=0; i < n; i++) { lambda(i) = RgigDouble(Event(i) - 0.5, 1, ScaleAux(i));}
   }
 
   return lambda;
@@ -1031,7 +915,8 @@ Rcpp::List HiddenRMWreg_MCMC(int N, // Total number of MCMC draws
                              int FixBetaJ, // If FixBeta = 0, all Betas are updated. Else beta[1],...,beta[J] are fixed
                              int FixGam,
                              int FixTheta,
-                             int PrintProgress)
+                             int PrintProgress,
+                             int lambdaPeriod)
 {
   // NUMBER OF REGRESSORS, SAMPLE SIZE AND NUMBER OF STORED DRAWS
   int k = beta0.size(); int n = Time.size(); int Naux = N/thin - burn/thin;
@@ -1119,17 +1004,19 @@ Rcpp::List HiddenRMWreg_MCMC(int N, // Total number of MCMC draws
 
     if((FixTheta == 0) & (mixing != "None") & (mixing != "Exponential"))
     {
-//      thetaAux =
+      thetaAux = GRWMH_RMW_theta(exp(LSthetaAux), thetaAux(0),
+                                 gamAux(0), lambdaAux,
+                                 PriorCV, hyp_theta, mixing, n);
+      PthetaAux += thetaAux(1); if(i>=burn) {thetaAccept += thetaAux(1);}
     }
 
-    // Updating mixing parameters
-    lambdaAux = lambdaUpdate(mixing,
-                             Time_arma, Event_arma, X_arma,
-                             betaAux.col(0), gamAux(0), thetaAux(0), n);
-//    if( i%Q == 0 )
-//    {
-//
-//    }
+    if(i%lambdaPeriod==0)
+    {
+      // Updating mixing parameters
+      lambdaAux = lambdaUpdate(mixing,
+                               Time_arma, Event_arma, X_arma,
+                               betaAux.col(0), gamAux(0), thetaAux(0), n);
+    }
 
     // STOP ADAPTING THE PROPOSAL VARIANCES AFTER EndAdapt ITERATIONS
     if((i < EndAdapt) & (Adapt == 1))
@@ -1138,14 +1025,21 @@ Rcpp::List HiddenRMWreg_MCMC(int N, // Total number of MCMC draws
       if(Ibatch==50)
       {
         PbetaAux /= 50; PbetaAux = -1+2*arma::conv_to<arma::mat>::from(PbetaAux>ar);
-        LSbetaAux=LSbetaAux+PbetaAux*std::min(0.03,1/sqrt(i));
+        LSbetaAux += PbetaAux*std::min(0.03,1/sqrt(i));
         PbetaAux = arma::zeros(k);
 
         if(FixGam == 0)
         {
           PgamAux /= 50; PgamAux = -1+2*(PgamAux>ar);
-          LSgamAux=LSgamAux+PgamAux*std::min(0.03,1/sqrt(i));
+          LSgamAux += PgamAux*std::min(0.03,1/sqrt(i));
           PgamAux = 0;
+        }
+
+        if(FixTheta == 0)
+        {
+          PthetaAux /= 50; PthetaAux = -1+2*(PthetaAux>ar);
+          LSthetaAux += PthetaAux*std::min(0.03,1/sqrt(i));
+          PthetaAux = 0;
         }
 
         Ibatch = 0;
@@ -1157,12 +1051,14 @@ Rcpp::List HiddenRMWreg_MCMC(int N, // Total number of MCMC draws
     {
       beta.row(i/thin - burn/thin) = betaAux.col(0).t();
       gam(i/thin - burn/thin) = gamAux(0);
+      theta(i/thin - burn/thin) = thetaAux(0);
       lambda.row(i/thin - burn/thin) = lambdaAux.t();
 
       if(StoreAdapt == 1)
       {
         LSbeta.row(i/thin - burn/thin) = LSbetaAux.t();
         LSgam(i/thin - burn/thin) = LSgamAux;
+        LStheta(i/thin - burn/thin) = LSthetaAux;
       }
     }
 
@@ -1175,10 +1071,12 @@ Rcpp::List HiddenRMWreg_MCMC(int N, // Total number of MCMC draws
       Rcpp::Rcout << "Current draws of some selected parameters are displayed below." << std::endl;
       Rcpp::Rcout << "beta (1st element): " << betaAux(0,0) << std::endl;
       Rcpp::Rcout << "gam: " << gamAux(0) << std::endl;
+      Rcpp::Rcout << "theta: " << thetaAux(0) << std::endl;
       Rcpp::Rcout << "--------------------------------------------------------------------" << std::endl;
       Rcpp::Rcout << "Current proposal variances for Metropolis Hastings updates (log-scale)." << std::endl;
       Rcpp::Rcout << "LSbeta (1st element): " << LSbetaAux(0) << std::endl;
       Rcpp::Rcout << "LSgam: " << LSgamAux << std::endl;
+      Rcpp::Rcout << "LStheta: " << LSthetaAux << std::endl;
     }
   }
 
@@ -1202,6 +1100,8 @@ Rcpp::List HiddenRMWreg_MCMC(int N, // Total number of MCMC draws
   Rcpp::Rcout << " " << std::endl;
   Rcpp::Rcout << "Acceptance rate for gam: " << gamAccept/(N-burn) << std::endl;
   Rcpp::Rcout << " " << std::endl;
+  Rcpp::Rcout << "Acceptance rate for theta: " << thetaAccept/(N-burn) << std::endl;
+  Rcpp::Rcout << " " << std::endl;
   Rcpp::Rcout << "--------------------------------------------------------------------" << std::endl;
   Rcpp::Rcout << " " << std::endl;
 
@@ -1211,9 +1111,11 @@ Rcpp::List HiddenRMWreg_MCMC(int N, // Total number of MCMC draws
     return(Rcpp::List::create(
            Rcpp::Named("beta") = beta,
            Rcpp::Named("gam") = gam,
+           Rcpp::Named("theta") = theta,
            Rcpp::Named("lambda") = lambda,
-           Rcpp::Named("ls.beta")=LSbeta,
-           Rcpp::Named("ls.gam")=LSgam));
+           Rcpp::Named("ls.beta") = LSbeta,
+           Rcpp::Named("ls.gam") = LSgam,
+           Rcpp::Named("ls.theta") = LStheta));
   }
   else
   {
@@ -1221,6 +1123,7 @@ Rcpp::List HiddenRMWreg_MCMC(int N, // Total number of MCMC draws
     return(Rcpp::List::create(
            Rcpp::Named("beta") = beta,
            Rcpp::Named("gam") = gam,
+           Rcpp::Named("theta") = theta,
            Rcpp::Named("lambda") = lambda));
   }
 }

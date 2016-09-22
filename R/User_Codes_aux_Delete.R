@@ -142,74 +142,6 @@ CaseDeletion.WEI=function(Time,Cens,X,chain,EXP=FALSE)
 ###############################################################################
 ###############################################################################
 
-# MCMC ALGORITHM
-MCMC.RMWEXP<-function(N,thin,Q,beta0,gam0=1,Time,Cens,X,hyp1.gam=1,hyp2.gam=1,ar=0.44,EXP=FALSE)
-{
-  # NUMBER OF REGRESSORS, SAMPLE SIZE AND NUMBER OF STORED DRAWS
-  k<-length(beta0); n<-length(Time); N.aux<-N/thin
-  # INITIALIZATION OF ELEMENTS WHERE DRAWS ARE STORED
-  beta<-matrix(rep(0,times=(N.aux+1)*k),ncol=k); beta[1,]<-beta0
-  gam<-rep(0,times=N.aux+1); gam[1]<-gam0
-  lambda<-matrix(rep(0,times=(N.aux+1)*n),ncol=n); lambda[1,]<-rexp(n,1)
-  # WHERE EMPIRICAL ACCEPTANCE PROBABILITIES ARE STORED
-  accept.beta=rep(0,times=k); pbeta.aux=rep(0,times=k); accept.gam=0; pgam.aux=0;
-  # WHERE ADAPTIVE PROPOSAL VARIANCES ARE STORED (LOG-SCALE)
-  ls.beta=matrix(rep(0,times=(N.aux+1)*k),ncol=k); ls.gam=rep(0,times=N.aux+1)
-
-  # INITIALIZATION OF AUXILIARY PARAMETERS
-  beta.aux=beta[1,]; gam.aux=gam[1]; lambda.aux=lambda[1,]
-  ls.beta.aux=ls.beta[1,]; ls.gam.aux=ls.gam[1]
-  # BATCH INDICATOR FOR ADAPTIVE STEPS (WHEN TO ADAPT)
-  i_batch=0;
-
-  for(iter in 2:(N+1))
-  {
-    i_batch=i_batch+1;
-
-    # DRAWS FROM BETA
-    for(j in 1:k)
-    {
-      MH.beta=GRWMH.RMW.beta.j(N=1,omega2=exp(ls.beta.aux)[j],j=j,beta0=beta.aux,Time=Time,Cens=Cens,X=X,gam=gam.aux,lambda=lambda.aux)
-      beta.aux<-MH.beta$beta
-      if(MH.beta$ind==1) {accept.beta[j]=accept.beta[j]+1; pbeta.aux[j]=pbeta.aux[j]+1}
-    }
-    # DRAWS FROM GAMMA (IF NOT FIXED)
-    if(EXP==FALSE)
-    {
-      MH.gam=GRWMH.RMW.gam(N=1,omega2=exp(ls.gam.aux),gam0=gam.aux,Time=Time,Cens=Cens,X=X,beta=beta.aux,theta=NA,lambda=lambda.aux,typ.theta=NA,hyp.theta=NA,hyp1.gam=hyp1.gam,hyp2.gam=hyp2.gam,mixing='None',lower.bound=0.06)
-      gam.aux<-MH.gam$gam
-      if(MH.gam$ind==1) {accept.gam=accept.gam+1; pgam.aux=pgam.aux+1}
-    }
-    # DRAWS FROM MIXING PARAMETERS
-    if((iter-1)%%Q==0)
-    {
-      lambda.aux=rgamma(n=n,shape=1+Cens,rate=1+(exp(-as.numeric(X%*%(beta.aux)))*Time)^gam.aux)
-    }
-    # ADAPTIVE STEP
-    if(i_batch==50)
-    {
-      pbeta.aux=pbeta.aux/50; Pbeta.aux=as.numeric(pbeta.aux<rep(ar,times=k))
-      ls.beta.aux=ls.beta.aux+((-1)^Pbeta.aux)*min(0.01,1/sqrt(iter))
-      pgam.aux=pgam.aux/50; Pgam.aux=as.numeric(pgam.aux<ar)
-      ls.gam.aux=ls.gam.aux+((-1)^Pgam.aux)*min(0.01,1/sqrt(iter))
-      i_batch=0; pbeta.aux=rep(0,times=k); pgam.aux=0;
-    }
-    # DRAWS STORAGE
-    if(iter%%thin==0)
-    {
-      beta[iter/thin+1,]<-beta.aux; gam[iter/thin+1]<-gam.aux; lambda[iter/thin+1,]<-lambda.aux
-      ls.beta[iter/thin+1,]=ls.beta.aux; ls.gam[iter/thin+1]=ls.gam.aux
-    }
-    if((iter-1)%%100000==0) {print(iter-1)}
-  }
-
-  print(paste("AR beta",1:k,":",round(accept.beta/N,2)))
-  print(paste("AR gamma :",round(accept.gam/N,2)))
-
-  chain=cbind(beta,gam,lambda,ls.beta,ls.gam)
-  return(chain)
-}
-
 # DIC
 DIC.RMWEXP=function(Time,Cens,X,chain,EXP=FALSE)
 {
@@ -367,86 +299,6 @@ BF.lambda.obs.RMWEXP<-function(ref,obs,Time,Cens,X,chain,EXP=FALSE)
 ######################## ALL CODES FOR RMWGAM   MODEL #########################
 ###############################################################################
 ###############################################################################
-
-# MCMC ALGORITHM
-MCMC.RMWGAM<-function(N,thin,Q,beta0,gam0=1,theta0,Time,Cens,X,typ.theta,hyp.theta,hyp1.gam=1,hyp2.gam=1,ar=0.44,EXP=FALSE)
-{
-  # NUMBER OF REGRESSORS, SAMPLE SIZE AND NUMBER OF STORED DRAWS
-  k<-length(beta0); n<-length(Time); N.aux<-N/thin
-  # INITIALIZATION OF ELEMENTS WHERE DRAWS ARE STORED
-  beta<-matrix(rep(0,times=(N.aux+1)*k),ncol=k); beta[1,]<-beta0
-  theta<-rep(0,times=N.aux+1); theta[1]<-theta0
-  gam<-rep(0,times=N.aux+1); gam[1]<-gam0
-  lambda<-matrix(rep(0,times=(N.aux+1)*n),ncol=n); lambda[1,]<-rgamma(n,shape=theta0,rate=1)
-  # WHERE EMPIRICAL ACCEPTANCE PROBABILITIES ARE STORED
-  accept.beta=rep(0,times=k); pbeta.aux=rep(0,times=k); accept.theta=0; ptheta.aux=0; accept.gam=0; pgam.aux=0
-  # WHERE ADAPTIVE PROPOSAL VARIANCES ARE STORED (LOG-SCALE)
-  ls.beta=matrix(rep(0,times=(N.aux+1)*k),ncol=k); ls.gam=rep(0,times=N.aux+1); ls.theta=rep(0,times=N.aux+1)
-
-  # INITIALIZATION OF AUXILIARY PARAMETERS
-  beta.aux=beta[1,]; gam.aux=gam[1]; theta.aux=theta[1]; lambda.aux=lambda[1,]
-  ls.beta.aux=ls.beta[1,]; ls.gam.aux=ls.gam[1]; ls.theta.aux=ls.theta[1]
-  # BATCH INDICATOR FOR ADAPTIVE STEPS (WHEN TO ADAPT)
-  i_batch=0;
-
-  for(iter in 2:(N+1))
-  {
-    i_batch=i_batch+1;
-
-    # DRAWS FROM BETA
-    for(j in 1:k)
-    {
-      MH.beta=GRWMH.RMW.beta.j(N=1,omega2=exp(ls.beta.aux)[j],j=j,beta0=beta.aux,Time=Time,Cens=Cens,X=X,gam=gam.aux,lambda=lambda.aux)
-      beta.aux<-MH.beta$beta
-      if(MH.beta$ind==1) {accept.beta[j]=accept.beta[j]+1; pbeta.aux[j]=pbeta.aux[j]+1}
-    }
-
-    # DRAWS FROM GAMMA (IF NOT FIXED)
-    if(EXP==FALSE)
-    {
-      MH.gam=GRWMH.RMW.gam(N=1,omega2=exp(ls.gam.aux),gam0=gam.aux,Time=Time,Cens=Cens,X=X,beta=beta.aux,theta=theta.aux,lambda=lambda.aux,typ.theta=typ.theta,hyp.theta=hyp.theta,hyp1.gam=hyp1.gam,hyp2.gam=hyp2.gam,mixing="Gamma",lower.bound=0.06)
-      gam.aux<-MH.gam$gam
-      if(MH.gam$ind==1) {accept.gam=accept.gam+1; pgam.aux=pgam.aux+1}
-    }
-
-    # DRAWS FROM THETA
-    MH.theta=GRWMH.RMWGAM.theta(N=1,omega2=exp(ls.theta.aux),theta0=theta.aux,gam=gam.aux,lambda=lambda.aux,type.prior=typ.theta,hyper=hyp.theta)
-    theta.aux<-MH.theta$theta
-    if(MH.theta$ind==1) {accept.theta=accept.theta+1; ptheta.aux=ptheta.aux+1}
-
-    # DRAWS FROM MIXING PARAMETERS
-    if((iter-1)%%Q==0)
-    {
-      lambda.aux=rgamma(n=n,shape=theta.aux+Cens,rate=theta.aux+(exp(-as.numeric(X%*%(beta.aux)))*Time)^gam.aux)
-    }
-    # ADAPTIVE STEP
-    if(i_batch==50)
-    {
-      pbeta.aux=pbeta.aux/50; Pbeta.aux=as.numeric(pbeta.aux<rep(ar,times=k))
-      ls.beta.aux=ls.beta.aux+((-1)^Pbeta.aux)*min(0.01,1/sqrt(iter))
-      pgam.aux=pgam.aux/50; Pgam.aux=as.numeric(pgam.aux<ar)
-      ls.gam.aux=ls.gam.aux+((-1)^Pgam.aux)*min(0.01,1/sqrt(iter))
-      ptheta.aux=ptheta.aux/50; Ptheta.aux=as.numeric(ptheta.aux<ar)
-      ls.theta.aux=ls.theta.aux+((-1)^Ptheta.aux)*min(0.01,1/sqrt(iter))
-      i_batch=0; pbeta.aux=rep(0,times=k); pgam.aux=0; ptheta.aux=0;
-    }
-    # DRAWS STORAGE
-    if(iter%%thin==0)
-    {
-      beta[iter/thin+1,]<-beta.aux; gam[iter/thin+1]<-gam.aux; theta[iter/thin+1]<-theta.aux; lambda[iter/thin+1,]<-lambda.aux
-      ls.beta[iter/thin+1,]=ls.beta.aux; ls.gam[iter/thin+1]=ls.gam.aux; ls.theta[iter/thin+1]=ls.theta.aux
-    }
-    if((iter-1)%%100000==0) {print(iter-1)}
-
-  }
-
-  print(paste("AR beta",1:k,":",round(accept.beta/N,2)))
-  print(paste("AR gamma :",round(accept.gam/N,2)))
-  print(paste("AR theta :",round(accept.theta/N,2)))
-
-  chain=cbind(beta,gam,theta,lambda,ls.beta,ls.gam,ls.theta)
-  return(chain)
-}
 
 # DIC
 DIC.RMWGAM=function(Time,Cens,X,chain,EXP=FALSE)
@@ -609,9 +461,6 @@ BF.lambda.obs.RMWGAM<-function(ref,obs,N,thin,Q,burn,Time,Cens,X,chain,typ.theta
   aux2=CFP.obs.RMWGAM(ref,obs,N,thin,Q,burn,Time,Cens,X,chain,typ.theta,hyp.theta,hyp1.gam,hyp2.gam,ar,EXP)
   return(aux1*aux2)
 }
-
-
-
 
 
 ###############################################################################

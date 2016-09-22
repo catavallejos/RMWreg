@@ -12,8 +12,10 @@ version 0.0.5: (2016-09-16)
 - RMWreg_MCMC with Mixing = "None" is working
 - RMWreg_MCMC with Mixing = "Exponential" is working
 
+version 0.0.6: (2016-09-20)
+- RMWreg_MCMC with Mixing = "Gamma" is working
+- RMWreg_MCMC with Mixing = "InvGamma" is working
+- RMWreg_MCMC with Mixing = "InvGauss" is working
+
 To-do
-- RMWreg_MCMC with Mixing = "Gamma"
-- RMWreg_MCMC with Mixing = "InvGamma"
-- RMWreg_MCMC with Mixing = "InvGauss"
 - RMWreg_MCMC with Mixing = "LogNormal"
