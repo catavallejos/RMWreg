@@ -6,21 +6,18 @@
 
 using namespace Rcpp;
 
-// lambdaUpdate
-arma::vec lambdaUpdate(String const& mixing, arma::vec const& Time, arma::vec const& Event, arma::mat const& X, arma::vec const& beta, double const& gam, double const& theta, int const& n);
-RcppExport SEXP RMWreg_lambdaUpdate(SEXP mixingSEXP, SEXP TimeSEXP, SEXP EventSEXP, SEXP XSEXP, SEXP betaSEXP, SEXP gamSEXP, SEXP thetaSEXP, SEXP nSEXP) {
+// HiddenLogPriorTheta
+double HiddenLogPriorTheta(double const& theta, double const& gam, double const& a, String const& type, String const& mixing);
+RcppExport SEXP RMWreg_HiddenLogPriorTheta(SEXP thetaSEXP, SEXP gamSEXP, SEXP aSEXP, SEXP typeSEXP, SEXP mixingSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< String const& >::type mixing(mixingSEXP);
-    Rcpp::traits::input_parameter< arma::vec const& >::type Time(TimeSEXP);
-    Rcpp::traits::input_parameter< arma::vec const& >::type Event(EventSEXP);
-    Rcpp::traits::input_parameter< arma::mat const& >::type X(XSEXP);
-    Rcpp::traits::input_parameter< arma::vec const& >::type beta(betaSEXP);
-    Rcpp::traits::input_parameter< double const& >::type gam(gamSEXP);
     Rcpp::traits::input_parameter< double const& >::type theta(thetaSEXP);
-    Rcpp::traits::input_parameter< int const& >::type n(nSEXP);
-    __result = Rcpp::wrap(lambdaUpdate(mixing, Time, Event, X, beta, gam, theta, n));
+    Rcpp::traits::input_parameter< double const& >::type gam(gamSEXP);
+    Rcpp::traits::input_parameter< double const& >::type a(aSEXP);
+    Rcpp::traits::input_parameter< String const& >::type type(typeSEXP);
+    Rcpp::traits::input_parameter< String const& >::type mixing(mixingSEXP);
+    __result = Rcpp::wrap(HiddenLogPriorTheta(theta, gam, a, type, mixing));
     return __result;
 END_RCPP
 }
@@ -57,6 +54,56 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type PrintProgress(PrintProgressSEXP);
     Rcpp::traits::input_parameter< int >::type lambdaPeriod(lambdaPeriodSEXP);
     __result = Rcpp::wrap(HiddenRMWreg_MCMC(N, thin, burn, Time, Event, X, mixing, hyp1_gam, hyp2_gam, PriorCV, hyp_theta, beta0, gam0, theta0, Adapt, ar, StoreAdapt, EndAdapt, LSbeta0, LSgam0, LStheta0, FixBetaJ, FixGam, FixTheta, PrintProgress, lambdaPeriod));
+    return __result;
+END_RCPP
+}
+// HiddenLogLik
+double HiddenLogLik(arma::vec const& Time, arma::vec const& Event, arma::mat const& DesignMat, arma::vec const& beta, double const& gam, double const& theta, String const& Mixing, String const& BaseModel);
+RcppExport SEXP RMWreg_HiddenLogLik(SEXP TimeSEXP, SEXP EventSEXP, SEXP DesignMatSEXP, SEXP betaSEXP, SEXP gamSEXP, SEXP thetaSEXP, SEXP MixingSEXP, SEXP BaseModelSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< arma::vec const& >::type Time(TimeSEXP);
+    Rcpp::traits::input_parameter< arma::vec const& >::type Event(EventSEXP);
+    Rcpp::traits::input_parameter< arma::mat const& >::type DesignMat(DesignMatSEXP);
+    Rcpp::traits::input_parameter< arma::vec const& >::type beta(betaSEXP);
+    Rcpp::traits::input_parameter< double const& >::type gam(gamSEXP);
+    Rcpp::traits::input_parameter< double const& >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< String const& >::type Mixing(MixingSEXP);
+    Rcpp::traits::input_parameter< String const& >::type BaseModel(BaseModelSEXP);
+    __result = Rcpp::wrap(HiddenLogLik(Time, Event, DesignMat, beta, gam, theta, Mixing, BaseModel));
+    return __result;
+END_RCPP
+}
+// HiddenRMWreg_DIC
+double HiddenRMWreg_DIC(Rcpp::List const& Chain, arma::vec const& Time, arma::vec const& Event, arma::mat const& DesignMat, String const& Mixing, String const& BaseModel);
+RcppExport SEXP RMWreg_HiddenRMWreg_DIC(SEXP ChainSEXP, SEXP TimeSEXP, SEXP EventSEXP, SEXP DesignMatSEXP, SEXP MixingSEXP, SEXP BaseModelSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< Rcpp::List const& >::type Chain(ChainSEXP);
+    Rcpp::traits::input_parameter< arma::vec const& >::type Time(TimeSEXP);
+    Rcpp::traits::input_parameter< arma::vec const& >::type Event(EventSEXP);
+    Rcpp::traits::input_parameter< arma::mat const& >::type DesignMat(DesignMatSEXP);
+    Rcpp::traits::input_parameter< String const& >::type Mixing(MixingSEXP);
+    Rcpp::traits::input_parameter< String const& >::type BaseModel(BaseModelSEXP);
+    __result = Rcpp::wrap(HiddenRMWreg_DIC(Chain, Time, Event, DesignMat, Mixing, BaseModel));
+    return __result;
+END_RCPP
+}
+// HiddenRMWreg_CaseDeletion
+arma::mat HiddenRMWreg_CaseDeletion(Rcpp::List const& Chain, arma::vec const& Time, arma::vec const& Event, arma::mat const& DesignMat, String const& Mixing, String const& BaseModel);
+RcppExport SEXP RMWreg_HiddenRMWreg_CaseDeletion(SEXP ChainSEXP, SEXP TimeSEXP, SEXP EventSEXP, SEXP DesignMatSEXP, SEXP MixingSEXP, SEXP BaseModelSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< Rcpp::List const& >::type Chain(ChainSEXP);
+    Rcpp::traits::input_parameter< arma::vec const& >::type Time(TimeSEXP);
+    Rcpp::traits::input_parameter< arma::vec const& >::type Event(EventSEXP);
+    Rcpp::traits::input_parameter< arma::mat const& >::type DesignMat(DesignMatSEXP);
+    Rcpp::traits::input_parameter< String const& >::type Mixing(MixingSEXP);
+    Rcpp::traits::input_parameter< String const& >::type BaseModel(BaseModelSEXP);
+    __result = Rcpp::wrap(HiddenRMWreg_CaseDeletion(Chain, Time, Event, DesignMat, Mixing, BaseModel));
     return __result;
 END_RCPP
 }

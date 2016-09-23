@@ -17,5 +17,11 @@ version 0.0.6: (2016-09-20)
 - RMWreg_MCMC with Mixing = "InvGamma" is working
 - RMWreg_MCMC with Mixing = "InvGauss" is working
 
-To-do
-- RMWreg_MCMC with Mixing = "LogNormal"
+version 0.0.7: (2016-09-23)
+- RMWreg_MCMC with Mixing = "LogNormal" is working
+- Function RMWreg_DIC has been added
+- Function RMWreg_CaseDeletion has been added
+- Function RMWreg_logML has been added
+
+TO-DO
+- Replace loops with apply in RMWreg_logML, Mixing = "LogNormal"

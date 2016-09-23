@@ -1,5 +1,8 @@
-exportPattern("^[[:alpha:]]+")
+exportPattern("^[^\\Hidden]")
 importFrom(Rcpp, evalCpp)
 useDynLib(RMWreg)
 
-export(RMWreg_MCMC)
+export(RMWreg_MCMC,
+       RMWreg_DIC,
+       RMWreg_CaseDeletion,
+       RMWreg_logML)

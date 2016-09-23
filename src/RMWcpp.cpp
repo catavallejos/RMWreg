@@ -510,7 +510,8 @@ double PriorTheta(double const& theta,
 
 // PRIOR FOR THETA GIVEN GAMMA (LOGARITHMIC SCALE)
 // Debug: function tested to match original R implementation
-double LogPriorTheta(double const& theta,
+// [[Rcpp::export]]
+double HiddenLogPriorTheta(double const& theta,
                      double const& gam,
                      double const& a,
                      String const& type,
@@ -592,19 +593,25 @@ arma::vec RemoveElemVec(arma::vec const& beta,
   return aux;
 }
 
+// ################################################################################
+// ################################################################################
+// # FUNCTIONS REQUIRED TO RUN THE MCMC SAMPLER
+// ################################################################################
+// ################################################################################
+
 // GAUSSIAN RANDOM WALK METROPOLIS HASTINGS FOR beta[j]
 // USE lambda=rep(1,times=n) FOR WEIBULL MODEL WITH MO MIXTURE
 // Debug: function tested to match original R implementation
-arma::vec GRWMH_RMW_beta_j(double const& omega2,
-                           int const& j,
-                           arma::vec const& beta0,
-                           arma::vec const& Time,
-                           arma::vec const& Event,
-                           arma::mat const& X,
-                           double const& gam,
-                           arma::vec const& lambda,
-                           int const& k,
-                           int const& n)
+arma::vec betaUpdate(double const& omega2,
+                     int const& j,
+                     arma::vec const& beta0,
+                     arma::vec const& Time,
+                     arma::vec const& Event,
+                     arma::mat const& X,
+                     double const& gam,
+                     arma::vec const& lambda,
+                     int const& k,
+                     int const& n)
 {
   // INITIALIZING THE VECTOR WHERE DRAWS ARE STORED
   arma::vec out(2);
@@ -626,50 +633,25 @@ arma::vec GRWMH_RMW_beta_j(double const& omega2,
   return out;
 }
 
-// ACCEPTANCY PROBABILITY FOR GRWMH beta[j]
-// USE lambda=rep(1,times=n) FOR WEIBULL MODEL WITH MO MIXTURE
-// Debug: function tested to match original R implementation
-double alpha_beta_j(arma::vec const& beta0,
-                    arma::vec const& beta1,
-                    double const& gam,
-                    arma::vec const& Time,
-                    arma::vec const& Event,
-                    arma::mat const& X,
-                    arma::vec const& lambda,
-                    int const& j)
-{
-  // AUXILIARY QUANTITIES
-  arma::mat Xj = RemoveColMat(X, j); arma::vec bj = RemoveElemVec(beta0, j);
-  arma::vec SumOtherEffects = exp( - gam * (Xj * bj) );
-
-  // ACCEPTANCE PROBABILITY
-  double log_aux = (beta0(j) - beta1(j)) * gam * sum(X.col(j) % Event);
-  log_aux += sum( SumOtherEffects % pow(Time,gam) % lambda % (exp(-gam * beta0(j) * X.col(j)) - exp(-gam * beta1(j) * X.col(j))));
-  log_aux = exp(log_aux);
-
-  if(log_aux < 1) { return(log_aux); }
-  else { return(1);}
-}
-
 // GAUSSIAN RANDOM WALK METROPOLIS HASTINGS FOR GAMMA
 // USE lambda=rep(1,times=n) FOR WEIBULL MODEL WITH MIXTURE
 // Debug: function tested to match original R implementation
 // Debug: includes GRWMH.RMWLN.gam function as a special case (rather than a separate function)
-arma::vec GRWMH_RMW_gam(double const& omega2,
-                         double const& gam0,
-                         arma::vec const& Time,
-                         arma::vec const& Event,
-                         arma::mat const& X,
-                         arma::vec const& beta,
-                         double const& theta,
-                         arma::vec const& lambda,
-                         String const& PriorCV,
-                         double const& hyp_theta,
-                         double const& hyp1_gam,
-                         double const& hyp2_gam,
-                         String const& mixing,
-                         double const& lower_bound,
-                         int FIX_THETA = 0)
+arma::vec gamUpdate(double const& omega2,
+                    double const& gam0,
+                    arma::vec const& Time,
+                    arma::vec const& Event,
+                    arma::mat const& X,
+                    arma::vec const& beta,
+                    double const& theta,
+                    arma::vec const& lambda,
+                    String const& PriorCV,
+                    double const& hyp_theta,
+                    double const& hyp1_gam,
+                    double const& hyp2_gam,
+                    String const& mixing,
+                    double const& lower_bound,
+                    int FIX_THETA = 0)
 {
   // INITIALIZATION OF OUTPUT VARIABLES
   arma::vec out(2);
@@ -692,8 +674,8 @@ arma::vec GRWMH_RMW_gam(double const& omega2,
       log_aux -= sum(lambda % (pow(exp(-X*beta) % Time, y) - pow(exp(-X*beta) % Time, gam0)));
       if(FIX_THETA == 0)
       {
-        log_aux += LogPriorTheta(theta, y, hyp_theta, PriorCV, mixing);
-        log_aux -= LogPriorTheta(theta, gam0, hyp_theta, PriorCV, mixing);
+        log_aux += HiddenLogPriorTheta(theta, y, hyp_theta, PriorCV, mixing);
+        log_aux -= HiddenLogPriorTheta(theta, gam0, hyp_theta, PriorCV, mixing);
       }
       log_aux += R::dgamma(y, hyp1_gam, hyp2_gam, 1);
       log_aux -= R::dgamma(gam0, hyp1_gam, hyp2_gam, 1);
@@ -711,73 +693,24 @@ arma::vec GRWMH_RMW_gam(double const& omega2,
   return(out);
 }
 
-
-// ACCEPTANCY PROBABILITY FOR GRWMH GAMMA
-// USE lambda=rep(1,times=n) FOR WEIBULL MODEL WITH MIXTURE
-// Debug: function tested to match original R implementation
-// Debug: includes alphaRMWLN.gam function as a special case (rather than a separate function)
-double alpha_gam(double const& gam0,
-                 double const& gam1,
-                 arma::vec const& Time,
-                 arma::vec const& Event,
-                 arma::mat const& X,
-                 arma::vec const& beta,
-                 double const& theta,
-                 arma::vec const& lambda,
-                 String const& PriorCV,
-                 double const& hyp_theta,
-                 double const& hyp1_gam,
-                 double const& hyp2_gam,
-                 String const& mixing,
-                 double const& lower_bound,
-                 int FIX_THETA = 0)
-{
-  double log_aux;
-  if(gam1 < lower_bound) { log_aux = 0; }
-  else
-  {
-    log_aux = sum(Event) * log(gam1/gam0);
-    log_aux += (gam1 - gam0) * sum( Event % (log(Time) - X * beta));
-    log_aux -= sum(lambda % (pow(exp(-X*beta) % Time, gam1) - pow(exp(-X*beta) % Time, gam0)));
-    if(FIX_THETA == 0)
-    {
-      log_aux += LogPriorTheta(theta, gam1, hyp_theta, PriorCV, mixing);
-      log_aux -= LogPriorTheta(theta, gam0, hyp_theta, PriorCV, mixing);
-    }
-    log_aux += R::dgamma(gam1, hyp1_gam, hyp2_gam, 1);
-    log_aux -= R::dgamma(gam0, hyp1_gam, hyp2_gam, 1);
-    if(mixing == "LogNormal")
-    {
-      log_aux -= Time.n_elem * log(gam1 / gam0);
-      Rcpp::Rcout << "Time.n_elem * log(gam1 / gam0)" << Time.n_elem * log(gam1 / gam0) << std::endl;
-      log_aux -= (pow(gam1, -2.0) - pow(gam0, -2.0)) * (0.5/theta) * sum(pow(log(lambda), 2.0));
-    }
-    log_aux = exp(log_aux);
-  }
-
-  if(log_aux < 1) { return(log_aux); }
-  else { return(1);}
-}
-
 // GAUSSIAN RANDOM WALK METROPOLIS STEP FOR THETA
 // USE lambda=rep(1,times=n) FOR WEIBULL MODEL WITH MIXTURE
 // Debug: function tested to match original R implementation
 // Debug: includes GRWMH.RMWLN.gam function as a special case (rather than a separate function)
-arma::vec GRWMH_RMW_theta(double const& omega2,
-                          double const& theta0,
-                          double const& gam,
-                          arma::vec const& lambda,
-                          String const& PriorCV,
-                          double const& hyp_theta,
-                          String const& mixing,
-                          double const& n)
+arma::vec thetaUpdate(double const& omega2,
+                      double const& theta0,
+                      double const& gam,
+                      arma::vec const& lambda,
+                      String const& PriorCV,
+                      double const& hyp_theta,
+                      String const& mixing,
+                      double const& n)
 {
   // INITIALIZATION OF OUTPUT VARIABLES
   arma::vec out(2);
 
   // PROPOSAL STEP
   double y = R::rnorm(0,1) * sqrt(omega2) + theta0;
-//  double y = exp(R::rnorm(0,1) * sqrt(omega2) + log(theta0));
   double u = R::runif(0,1);
 
   double log_aux;
@@ -788,12 +721,6 @@ arma::vec GRWMH_RMW_theta(double const& omega2,
     {
       log_aux = n * (y*log(y) - R::lgammafn(y) - theta0*log(theta0) + R::lgammafn(theta0));
       log_aux += (y-theta0) * sum(log(lambda)) - (y-theta0) * sum(lambda);
-      log_aux += LogPriorTheta(y, gam, hyp_theta, PriorCV, mixing);
-      log_aux -= LogPriorTheta(theta0, gam, hyp_theta, PriorCV, mixing);
-//      // Extra correction for proposing on the log-scale
-//      log_aux += log(y) - log(theta0);
-      if(log(u) < log_aux) { out(0) = y; out(1) = 1; }
-      else { out(0) = theta0; out(1) = 0; }
     }
   }
   if(mixing == "InvGamma")
@@ -802,54 +729,35 @@ arma::vec GRWMH_RMW_theta(double const& omega2,
     else
     {
       log_aux = n * (R::lgammafn(theta0) - R::lgammafn(y)) + (theta0-y) * sum(log(lambda));
-      log_aux += LogPriorTheta(y, gam, hyp_theta, PriorCV, mixing);
-      log_aux -= LogPriorTheta(theta0, gam, hyp_theta, PriorCV, mixing);
-
-      if((arma::is_finite(log_aux)) & (log(u) < log_aux)) { out(0) = y; out(1) = 1; }
-      else { out(0) = theta0; out(1) = 0; }
     }
   }
   if(mixing == "InvGauss")
   {
     log_aux = 0.5 * (pow(theta0,-2) - pow(y,-2)) * sum(lambda);
     log_aux -= n * (pow(theta0,-1) - pow(y,-1));
-    log_aux += LogPriorTheta(y, gam, hyp_theta, PriorCV, mixing);
-    log_aux -= LogPriorTheta(theta0, gam, hyp_theta, PriorCV, mixing);
-
-    if((arma::is_finite(log_aux)) & (log(u) < log_aux)) { out(0) = y; out(1) = 1; }
-    else { out(0) = theta0; out(1) = 0; }
   }
+  if(mixing == "LogNormal")
+  {
+    log_aux = (n/2) * log(theta0/y);
+    log_aux -= 0.5 * (pow(y,-1) - pow(theta0,-1)) * sum(pow(log(lambda),2));
+  }
+  // PRIOR FACTOR
+  log_aux += HiddenLogPriorTheta(y, gam, hyp_theta, PriorCV, mixing);
+  log_aux -= HiddenLogPriorTheta(theta0, gam, hyp_theta, PriorCV, mixing);
+
+  // ACCEPT/REJECT
+  if((arma::is_finite(log_aux)) & (log(u) < log_aux)) { out(0) = y; out(1) = 1; }
+  else { out(0) = theta0; out(1) = 0; }
+
+  // REJECTING INVALID VALUES
+  if((mixing == "Gamma") & (y <= 2/gam)) { out(0) = theta0; out(1) = 0; }
+  if((mixing == "InvGamma") & (y <= 1)) { out(0) = theta0; out(1) = 0; }
 
   // OUTPUT
   return(out);
 }
 
-// ################################################################################
-// ################################################################################
-// # FUNCTIONS SPECIFIC FOR WEIBULL MODEL
-// ################################################################################
-// ################################################################################
-
-// LOG-LIKELIHOOD
-// Debug: function tested to match original R implementation
-double LogLikWEI(arma::vec const& Time,
-                 arma::vec const& Event,
-                 arma::mat const& X,
-                 arma::vec const& beta,
-                 double const& gam,
-                 int const& EXP)
-{
-  arma::vec Rate = exp(- gam * X * beta);
-  arma::vec out = Event % (log(Rate) - Rate % pow(Time, gam)) + (1-Event) % (- Rate % pow(Time,gam));
-  if(EXP == 0)
-  {
-    out += log(gam) * Event + (gam-1) * Event % log(Time);
-  }
-  return(sum(out));
-}
-
 // Sampling of mixing parameters
-// [[Rcpp::export]]
 arma::vec lambdaUpdate(String const& mixing,
                        arma::vec const& Time,
                        arma::vec const& Event,
@@ -884,6 +792,45 @@ arma::vec lambdaUpdate(String const& mixing,
   }
 
   return lambda;
+}
+
+// Sampling of mixing parameters (log-normal mixing only)
+arma::mat lambdaUpdate_LN(arma::vec const& lambda0,
+                          arma::vec const& prop_var,
+                          arma::vec const& Time,
+                          arma::vec const& Event,
+                          arma::mat const& X,
+                          arma::vec const& beta,
+                          double const& gam,
+                          double const& theta,
+                          int const& n)
+{
+  // CREATING VARIABLES WHERE TO STORE DRAWS
+  arma::vec lambda = arma::zeros(n);
+  arma::vec ind = arma::zeros(n);
+
+  // PROPOSAL STEP
+  arma::vec y = exp(arma::randn(n) % sqrt(prop_var) + log(lambda0));
+  arma::vec u = arma::randu(n);
+
+  // ACCEPT/REJECT STEP
+  arma::vec log_aux = Event % log(y/lambda0); // -1 cancels out as proposal is in log-scale // (Event-1)*log(y/lambda[l,])
+  log_aux -= pow(exp(-X*beta) % Time, gam) % (y - lambda0);
+  log_aux -= (1/(2*theta)) * ( pow(log(y),2)- pow(log(lambda0),2) );
+
+  // CREATING OUTPUT VARIABLE & DEBUG
+  // DEBUG: Reject very small values to avoid numerical issues
+  for (int i=0; i < n; i++)
+  {
+    if(arma::is_finite(log_aux(i)) & (log(u(i)) < log_aux(i)) & (y(i) > 1e-3))
+    {
+      ind(i) = 1; lambda(i) = y(i);
+    }
+    else{ind(i) = 0; lambda(i) = lambda0(i);}
+  }
+
+  // OUTPUT
+  return join_rows(lambda, ind);
 }
 
 // MCMC ALGORITHM
@@ -957,6 +904,12 @@ Rcpp::List HiddenRMWreg_MCMC(int N, // Total number of MCMC draws
   double gamAccept = 0; double PgamAux = 0;
   double thetaAccept = 0; double PthetaAux = 0;
 
+  // EXTRA PARAMS FOR LOG-NORMAL MIXING ONLY
+  arma::vec LSlambdaAux = arma::zeros(n);
+  arma::vec lambdaAccept = arma::zeros(n);
+  arma::vec PlambdaAux = arma::zeros(n);
+  arma::mat lambdaAux_LN = arma::ones(n, 2);
+
   // BATCH INITIALIZATION FOR ADAPTIVE METROPOLIS UPDATES (RE-INITIALIZE EVERY 50 ITERATIONS)
   int Ibatch = 0; int i; int j;
 
@@ -983,9 +936,9 @@ Rcpp::List HiddenRMWreg_MCMC(int N, // Total number of MCMC draws
     {
       if(j > FixBetaJ - 1)
       {
-        betaAux.row(j) = GRWMH_RMW_beta_j(exp(LSbetaAux(j)), j, betaAux.col(0),
-                                          Time_arma, Event_arma, X_arma,
-                                          gamAux(0), lambdaAux, k, n).t();
+        betaAux.row(j) = betaUpdate(exp(LSbetaAux(j)), j, betaAux.col(0),
+                                    Time_arma, Event_arma, X_arma,
+                                    gamAux(0), lambdaAux, k, n).t();
       }
       else { betaAux(j,1) = 0; }
     }
@@ -994,28 +947,40 @@ Rcpp::List HiddenRMWreg_MCMC(int N, // Total number of MCMC draws
     if(FixGam == 0)
     {
       // UPDATE OF GAM: 1st ELEMENT IS THE UPDATE, 2nd ELEMENT IS THE ACCEPTANCE INDICATOR
-      gamAux = GRWMH_RMW_gam(exp(LSgamAux), gamAux(0),
-                             Time_arma, Event_arma, X_arma,
-                             betaAux.col(0), thetaAux(0), lambdaAux,
-                             PriorCV, hyp_theta, hyp1_gam, hyp2_gam,
-                             mixing, 0.06, FixTheta); // lower_bound
+      gamAux = gamUpdate(exp(LSgamAux), gamAux(0),
+                         Time_arma, Event_arma, X_arma,
+                         betaAux.col(0), thetaAux(0), lambdaAux,
+                         PriorCV, hyp_theta, hyp1_gam, hyp2_gam,
+                         mixing, 0.06, FixTheta); // lower_bound
       PgamAux += gamAux(1); if(i>=burn) {gamAccept += gamAux(1);}
     }
 
     if((FixTheta == 0) & (mixing != "None") & (mixing != "Exponential"))
     {
-      thetaAux = GRWMH_RMW_theta(exp(LSthetaAux), thetaAux(0),
-                                 gamAux(0), lambdaAux,
-                                 PriorCV, hyp_theta, mixing, n);
+      thetaAux = thetaUpdate(exp(LSthetaAux), thetaAux(0),
+                             gamAux(0), lambdaAux,
+                             PriorCV, hyp_theta, mixing, n);
       PthetaAux += thetaAux(1); if(i>=burn) {thetaAccept += thetaAux(1);}
     }
 
+    // Updating mixing parameters
     if(i%lambdaPeriod==0)
     {
-      // Updating mixing parameters
-      lambdaAux = lambdaUpdate(mixing,
-                               Time_arma, Event_arma, X_arma,
-                               betaAux.col(0), gamAux(0), thetaAux(0), n);
+      if((mixing != "None") & (mixing != "LogNormal"))
+      {
+
+        lambdaAux = lambdaUpdate(mixing,
+                                 Time_arma, Event_arma, X_arma,
+                                 betaAux.col(0), gamAux(0), thetaAux(0), n);
+      }
+      if(mixing == "LogNormal")
+      {
+        lambdaAux_LN = lambdaUpdate_LN(lambdaAux, exp(LSlambdaAux),
+                                       Time_arma, Event_arma, X_arma,
+                                       betaAux.col(0), gamAux(0), thetaAux(0), n);
+        lambdaAux = lambdaAux_LN.col(0);
+        PlambdaAux += lambdaAux_LN.col(1); if(i>=burn) {lambdaAccept += lambdaAux_LN.col(1);}
+      }
     }
 
     // STOP ADAPTING THE PROPOSAL VARIANCES AFTER EndAdapt ITERATIONS
@@ -1041,6 +1006,14 @@ Rcpp::List HiddenRMWreg_MCMC(int N, // Total number of MCMC draws
           LSthetaAux += PthetaAux*std::min(0.03,1/sqrt(i));
           PthetaAux = 0;
         }
+
+        if(mixing == "LogNormal")
+        {
+          PlambdaAux /= (50 / lambdaPeriod); PlambdaAux = -1+2*arma::conv_to<arma::mat>::from(PlambdaAux>ar);
+          LSlambdaAux += PlambdaAux*std::min(0.03,1/sqrt(i));
+          PlambdaAux = arma::zeros(n);
+        }
+
 
         Ibatch = 0;
       }
@@ -1102,6 +1075,13 @@ Rcpp::List HiddenRMWreg_MCMC(int N, // Total number of MCMC draws
   Rcpp::Rcout << " " << std::endl;
   Rcpp::Rcout << "Acceptance rate for theta: " << thetaAccept/(N-burn) << std::endl;
   Rcpp::Rcout << " " << std::endl;
+  if(mixing == "LogNormal")
+  {
+    Rcpp::Rcout << "Minimum acceptance rate among lambda[i]'s: " << min(lambdaAccept/(N-burn)) << std::endl;
+    Rcpp::Rcout << "Average acceptance rate among lambda[i]'s: " << mean(lambdaAccept/(N-burn)) << std::endl;
+    Rcpp::Rcout << "Maximum acceptance rate among lambda[i]'s: " << max(lambdaAccept/(N-burn)) << std::endl;
+    Rcpp::Rcout << " " << std::endl;
+  }
   Rcpp::Rcout << "--------------------------------------------------------------------" << std::endl;
   Rcpp::Rcout << " " << std::endl;
 
@@ -1127,3 +1107,364 @@ Rcpp::List HiddenRMWreg_MCMC(int N, // Total number of MCMC draws
            Rcpp::Named("lambda") = lambda));
   }
 }
+
+// ################################################################################
+// ################################################################################
+// # FUNCTIONS REQUIRED TO CALCULATE DIC
+// ################################################################################
+// ################################################################################
+
+arma::vec logf_RMEIGAM(arma::vec const& Time,
+                       arma::vec const& Rate,
+                       double const& theta)
+{
+  arma::vec aux = log(2) + ((theta+1)/2)*log(Rate) + ((theta-1)/2)*log(Time) - R::lgammafn(theta);
+  for (int i=0; i < Time.n_elem; i++)
+  {
+    aux(i) += log(R::bessel_k(2 * sqrt(Rate(i)*Time(i)), -(theta-1), 1));
+  }
+  return(aux);
+}
+
+arma::vec logS_RMEIGAM(arma::vec const& Time,
+                       arma::vec const& Rate,
+                       double const& theta)
+{
+  arma::vec aux = log(2) + (theta/2) * log(Rate % Time) - R::lgammafn(theta);
+  for (int i=0; i < Time.n_elem; i++)
+  {
+    aux(i) += log(R::bessel_k(2 * sqrt(Rate(i)*Time(i)), -theta, 1));
+  }
+  return(aux);
+}
+
+double logf_RMEIGAM_d(double const& Time,
+                      double const& Rate,
+                      double const& theta)
+{
+  double aux = log(2) + ((theta+1)/2)*log(Rate) + ((theta-1)/2)*log(Time) - R::lgammafn(theta);
+  aux += log(R::bessel_k(2 * sqrt(Rate*Time), -(theta-1), 1));
+
+  return(aux);
+}
+
+double logS_RMEIGAM_d(double const& Time,
+                      double const& Rate,
+                      double const& theta)
+{
+  double aux = log(2) + (theta/2) * log(Rate * Time) - R::lgammafn(theta);
+  aux += log(R::bessel_k(2 * sqrt(Rate*Time), -theta, 1));
+  return(aux);
+}
+
+// LOG-LIKELIHOOD (refer to R code for Mixing = "LogNormal" )
+// Debug: function tested to match original R implementation
+// [[Rcpp::export]]
+double HiddenLogLik(arma::vec const& Time,
+              arma::vec const& Event,
+              arma::mat const& DesignMat,
+              arma::vec const& beta,
+              double const& gam,
+              double const& theta,
+              String const& Mixing,
+              String const& BaseModel)
+{
+  arma::vec out;
+  arma::vec Rate = exp(- gam * DesignMat * beta);
+
+  if(Mixing == "None")
+  {
+    out = Event % (log(Rate) - Rate % pow(Time, gam)) + (1-Event) % (- Rate % pow(Time,gam));
+  }
+  if(Mixing == "Exponential")
+  {
+    out = Event % (log(Rate) - 2*log(Rate % pow(Time,gam) + 1)) + (1-Event) % (-log(Rate % pow(Time,gam) + 1));
+  }
+  if(Mixing == "Gamma")
+  {
+    out = Event % (log(Rate) - (theta+1)*log((Rate/theta) % pow(Time,gam)+1)) + (1-Event)%(-theta * log((Rate/theta)%pow(Time,gam)+1));
+  }
+  if(Mixing == "InvGamma")
+  {
+    out = Event % logf_RMEIGAM(pow(Time,gam), Rate, theta) + (1-Event) % logS_RMEIGAM(pow(Time,gam), Rate, theta);
+  }
+  if(Mixing == "InvGauss")
+  {
+      arma::vec auxIG = 2 * Rate % pow(Time,gam) + pow(theta,-2);
+      out = Event%(log(Rate)+1/theta-0.5*log(auxIG)-sqrt(auxIG)) + (1-Event)%(1/theta-sqrt(auxIG));
+  }
+
+  // ADJUSTEMENT FOR RMW MODELS
+  if(BaseModel == "Weibull")
+  {
+    out += log(gam) * Event + (gam-1) * Event % log(Time);
+  }
+
+  return(sum(out));
+}
+
+// LOG-LIKELIHOOD
+// Debug: function tested to match original R implementation
+double LogLik_d(double const& Time,
+              double const& Event,
+              arma::vec const& DesignMat,
+              arma::vec const& beta,
+              double const& gam,
+              double const& theta,
+              String const& Mixing,
+              String const& BaseModel)
+{
+  double out;
+  double Rate = exp(- gam * sum(DesignMat % beta));
+
+  if(Mixing == "None")
+  {
+    out = Event * (log(Rate) - Rate * pow(Time, gam)) + (1-Event) * (- Rate * pow(Time,gam));
+  }
+  if(Mixing == "Exponential")
+  {
+    out = Event * (log(Rate) - 2*log(Rate * pow(Time,gam) + 1)) + (1-Event) * (-log(Rate * pow(Time,gam) + 1));
+  }
+  if(Mixing == "Gamma")
+  {
+    out = Event * (log(Rate) - (theta+1)*log((Rate/theta) * pow(Time,gam)+1)) + (1-Event)*(-theta * log((Rate/theta)*pow(Time,gam)+1));
+  }
+  if(Mixing == "InvGamma")
+  {
+    out = Event * logf_RMEIGAM_d(pow(Time,gam), Rate, theta) + (1-Event) * logS_RMEIGAM_d(pow(Time,gam), Rate, theta);
+  }
+  if(Mixing == "InvGauss")
+  {
+    double auxIG = 2 * Rate * pow(Time,gam) + pow(theta,-2);
+    out = Event*(log(Rate)+1/theta-0.5*log(auxIG)-sqrt(auxIG)) + (1-Event)*(1/theta-sqrt(auxIG));
+  }
+
+  // ADJUSTEMENT FOR RMW MODELS
+  if(BaseModel == "Weibull")
+  {
+    out += log(gam) * Event + (gam-1) * Event * log(Time);
+  }
+
+  return(out);
+}
+
+// [[Rcpp::export]]
+double HiddenRMWreg_DIC(Rcpp::List const& Chain,
+                        arma::vec const& Time,
+                        arma::vec const& Event,
+                        arma::mat const& DesignMat,
+                        String const& Mixing,
+                        String const& BaseModel)
+{
+  // EXTRACTING CHAINS
+  arma::mat beta = Rcpp::as<arma::mat>(Chain["beta"]);
+  arma::vec gam = Rcpp::as<arma::vec>(Chain["gam"]);
+  arma::vec theta = Rcpp::as<arma::vec>(Chain["theta"]);
+
+  // CALCULATING POSTERIOR MEDIANS
+  arma::vec beta_hat = median(beta).t();
+  double gam_hat = median(gam);
+  double theta_hat = median(theta);
+
+  // ELEMENT SIZES
+  int N = beta.n_rows;
+
+  // LIKELIHOOD FOR EACH ITERATION
+  arma::vec L = arma::zeros(N);
+  for (int i=0; i < N; i++)
+  {
+    L(i) = HiddenLogLik(Time, Event, DesignMat, beta.row(i).t(), gam(i), theta(i), Mixing, BaseModel);
+  }
+  double pd = -2 * mean(L);
+  pd += 2 * HiddenLogLik(Time, Event, DesignMat, beta_hat, gam_hat, theta_hat, Mixing, BaseModel);
+
+  return(-2 * mean(L) + pd);
+}
+
+// ################################################################################
+// ################################################################################
+// # FUNCTIONS REQUIRED TO PSEUDO MARGINAL LIKELIHOODS
+// ################################################################################
+// ################################################################################
+
+// [[Rcpp::export]]
+arma::mat HiddenRMWreg_CaseDeletion(Rcpp::List const& Chain,
+                                    arma::vec const& Time,
+                                    arma::vec const& Event,
+                                    arma::mat const& DesignMat,
+                                    String const& Mixing,
+                                    String const& BaseModel)
+{
+  // EXTRACTING CHAINS
+  arma::mat beta = Rcpp::as<arma::mat>(Chain["beta"]);
+  arma::vec gam = Rcpp::as<arma::vec>(Chain["gam"]);
+  arma::vec theta = Rcpp::as<arma::vec>(Chain["theta"]);
+
+  // ELEMENT SIZES
+  int n = Time.n_elem; int N = beta.n_rows;
+  arma::vec logCPO = arma::zeros(n);
+  arma::vec KLaux = arma::zeros(n);
+
+  // Offset to avoid under/overflows
+  arma::vec offset = arma::zeros(n);
+  arma::vec aux1 = arma::zeros(N); arma::vec aux2 = arma::zeros(N);
+
+  for(int i = 0; i < n; i++)
+  {
+    offset(i) = LogLik_d(Time(i), Event(i), DesignMat.row(i).t(),
+                         beta.row(0).t(), gam(0), theta(0),
+                         Mixing, BaseModel);
+    for(int iter = 0; iter < N; iter++)
+    {
+      aux2(iter) = LogLik_d(Time(i), Event(i), DesignMat.row(i).t(),
+                            beta.row(iter).t(), gam(iter), theta(iter),
+                            Mixing, BaseModel);
+      aux1(iter) = exp(-aux2(iter) + offset(i));
+    }
+    logCPO(i) = - log(mean(aux1)) + offset(i);
+    KLaux(i) = mean(aux2);
+  }
+
+  arma::vec KL = KLaux - logCPO;
+  arma::vec CALIBRATION = 0.5 * (1+sqrt(1-exp(-2*KL)));
+
+   return(join_rows(join_rows(logCPO,KL) ,CALIBRATION));
+}
+
+// ################################################################################
+// ################################################################################
+// # FUNCTIONS REQUIRED TO ESTIMATE MARGINAL LIKELIHOODS
+// ################################################################################
+// ################################################################################
+
+// ACCEPTANCY PROBABILITY FOR GRWMH beta[j]
+// USE lambda=rep(1,times=n) FOR WEIBULL MODEL WITH MO MIXTURE
+// Debug: function tested to match original R implementation
+double AcceptProb_beta_j(arma::vec const& beta0,
+                         arma::vec const& beta1,
+                         double const& gam,
+                         arma::vec const& Time,
+                         arma::vec const& Event,
+                         arma::mat const& X,
+                         arma::vec const& lambda,
+                         int const& j)
+{
+  // AUXILIARY QUANTITIES
+  arma::mat Xj = RemoveColMat(X, j); arma::vec bj = RemoveElemVec(beta0, j);
+  arma::vec SumOtherEffects = exp( - gam * (Xj * bj) );
+
+  // ACCEPTANCE PROBABILITY
+  double log_aux = (beta0(j) - beta1(j)) * gam * sum(X.col(j) % Event);
+  log_aux += sum( SumOtherEffects % pow(Time,gam) % lambda % (exp(-gam * beta0(j) * X.col(j)) - exp(-gam * beta1(j) * X.col(j))));
+  log_aux = exp(log_aux);
+
+  if(log_aux < 1) { return(log_aux); }
+  else { return(1);}
+}
+
+// ACCEPTANCY PROBABILITY FOR GRWMH GAMMA
+// USE lambda=rep(1,times=n) FOR WEIBULL MODEL WITH MIXTURE
+// Debug: function tested to match original R implementation
+// Debug: includes alphaRMWLN.gam function as a special case (rather than a separate function)
+double AcceptProb_gam(double const& gam0,
+                      double const& gam1,
+                      arma::vec const& Time,
+                      arma::vec const& Event,
+                      arma::mat const& X,
+                      arma::vec const& beta,
+                      double const& theta,
+                      arma::vec const& lambda,
+                      String const& PriorCV,
+                      double const& hyp_theta,
+                      double const& hyp1_gam,
+                      double const& hyp2_gam,
+                      String const& mixing,
+                      double const& lower_bound,
+                      int FIX_THETA = 0)
+{
+  double log_aux;
+  if(gam1 >= lower_bound)
+  {
+    log_aux = sum(Event) * log(gam1/gam0);
+    log_aux += (gam1 - gam0) * sum( Event % (log(Time) - X * beta));
+    log_aux -= sum(lambda % (pow(exp(-X*beta) % Time, gam1) - pow(exp(-X*beta) % Time, gam0)));
+    if(FIX_THETA == 0)
+    {
+      log_aux += HiddenLogPriorTheta(theta, gam1, hyp_theta, PriorCV, mixing);
+      log_aux -= HiddenLogPriorTheta(theta, gam0, hyp_theta, PriorCV, mixing);
+    }
+    log_aux += R::dgamma(gam1, hyp1_gam, hyp2_gam, 1);
+    log_aux -= R::dgamma(gam0, hyp1_gam, hyp2_gam, 1);
+    if(mixing == "LogNormal")
+    {
+      log_aux -= Time.n_elem * log(gam1 / gam0);
+      Rcpp::Rcout << "Time.n_elem * log(gam1 / gam0)" << Time.n_elem * log(gam1 / gam0) << std::endl;
+      log_aux -= (pow(gam1, -2.0) - pow(gam0, -2.0)) * (0.5/theta) * sum(pow(log(lambda), 2.0));
+    }
+    log_aux = exp(log_aux);
+  }
+  else { log_aux = 0; }
+
+  if(log_aux < 1) { return(log_aux); }
+  else { return(1);}
+}
+
+// ACCEPTANCY PROBABILITY FOR GRWMH THETA
+// USE lambda=rep(1,times=n) FOR WEIBULL MODEL WITH MIXTURE
+double AcceptProb_theta(double const& theta0,
+                        double const& theta1,
+                        double const& gam,
+                        arma::vec const& lambda,
+                        String const& PriorCV,
+                        double const& hyp_theta,
+                        String const& mixing,
+                        double const& n)
+{
+  double log_aux;
+
+  if(mixing == "Gamma")
+  {
+    log_aux = n * (theta1*log(theta1) - R::lgammafn(theta1) - theta0*log(theta0) + R::lgammafn(theta0));
+    log_aux += (theta1-theta0) * sum(log(lambda)) - (theta1-theta0) * sum(lambda);
+  }
+  if(mixing == "InvGamma")
+  {
+    log_aux = n * (R::lgammafn(theta0) - R::lgammafn(theta1)) + (theta0-theta1) * sum(log(lambda));
+  }
+  if(mixing == "InvGauss")
+  {
+    log_aux = 0.5 * (pow(theta0,-2) - pow(theta1,-2)) * sum(lambda);
+    log_aux -= n * (pow(theta0,-1) - pow(theta1,-1));
+  }
+  if(mixing == "LogNormal")
+  {
+    log_aux = (n/2) * log(theta0/theta1);
+    log_aux -= 0.5 * (pow(theta1,-1) - pow(theta0,-1)) * sum(pow(log(lambda),2));
+  }
+  // PRIOR FACTOR
+  log_aux += HiddenLogPriorTheta(theta1, gam, hyp_theta, PriorCV, mixing);
+  log_aux -= HiddenLogPriorTheta(theta0, gam, hyp_theta, PriorCV, mixing);
+
+  log_aux = exp(log_aux);
+
+  // REJECTING INVALID VALUES
+  if((mixing == "Gamma") & (theta1 <= 2/gam)) { log_aux = 0; }
+  if((mixing == "InvGamma") & (theta1 <= 1)) { log_aux = 0; }
+
+  if(log_aux < 1) { return(log_aux); }
+  else { return(1);}
+}
+
+
+
+
+
+
+
+// ################################################################################
+// ################################################################################
+// # FUNCTIONS SPECIFIC FOR WEIBULL MODEL
+// ################################################################################
+// ################################################################################
+
+
