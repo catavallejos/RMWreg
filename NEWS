@@ -23,9 +23,12 @@ version 0.0.7: (2016-09-23)
 - Function RMWreg_CaseDeletion has been added
 - Function RMWreg_logML has been added
 
-version 0.0.8: (2016-09-24)
+version 0.0.8: (2016-09-25)
 - Loops replaces by apply in RMWreg_DIC and RMWreg_CaseDeletion for Mixing = "LogNormal"
+- Function RMWreg_BFoutlier has been added (Exponential mixing only for now)
+
+version 0.0.9: (2016-09-25)
+- Small changes to RMWreg_logML function
 
 TO-DO
-- Correct prior hyper params in text of AA analysis
-- Create outlier detection function
+- Extend RMWreg_BFoutlier to the remaining mixing distributions

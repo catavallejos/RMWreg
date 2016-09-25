@@ -758,6 +758,7 @@ arma::vec thetaUpdate(double const& omega2,
 }
 
 // Sampling of mixing parameters
+// Debug: function tested to match original R implementation
 arma::vec lambdaUpdate(String const& mixing,
                        arma::vec const& Time,
                        arma::vec const& Event,
@@ -871,10 +872,10 @@ Rcpp::List HiddenRMWreg_MCMC(int N, // Total number of MCMC draws
   int k = beta0.size(); int n = Time.size(); int Naux = N/thin - burn/thin;
 
   // OBJECTS WHERE DRAWS WILL BE STORED
-  arma::mat beta = arma::zeros(Naux, k);
-  arma::vec gam = arma::zeros(Naux);
-  arma::mat lambda = arma::zeros(Naux, n);
-  arma::vec theta = arma::zeros(Naux);
+  arma::mat beta = arma::ones(Naux, k);
+  arma::vec gam = arma::ones(Naux);
+  arma::mat lambda = arma::ones(Naux, n);
+  arma::vec theta = arma::ones(Naux);
   arma::mat LSbeta; arma::vec LSgam; arma::vec LStheta;
 
   // LOG-PROPOSAL VARIANCES
@@ -891,9 +892,9 @@ Rcpp::List HiddenRMWreg_MCMC(int N, // Total number of MCMC draws
   arma::mat X_arma = as_arma(X);
 
   // INITIALIZATION OF PARAMETER VALUES FOR MCMC RUN
-  arma::mat betaAux = arma::zeros(k,2); betaAux.col(0) = as_arma(beta0);
-  arma::vec gamAux = arma::zeros(2); gamAux(0) = gam0;
-  arma::vec thetaAux = arma::zeros(2); thetaAux(0) = theta0;
+  arma::mat betaAux = arma::ones(k,2); betaAux.col(0) = as_arma(beta0);
+  arma::vec gamAux = arma::ones(2); gamAux(0) = gam0;
+  arma::vec thetaAux = arma::ones(2); thetaAux(0) = theta0;
   arma::vec lambdaAux = arma::ones(n);
 
   // INITIALIZATION OF ADAPTIVE VARIANCES
@@ -993,27 +994,27 @@ Rcpp::List HiddenRMWreg_MCMC(int N, // Total number of MCMC draws
       if(Ibatch==50)
       {
         PbetaAux /= 50; PbetaAux = -1+2*arma::conv_to<arma::mat>::from(PbetaAux>ar);
-        LSbetaAux += PbetaAux*std::min(0.03,1/sqrt(i));
+        LSbetaAux += PbetaAux*std::min(0.01,1/sqrt(i));
         PbetaAux = arma::zeros(k);
 
         if(FixGam == 0)
         {
           PgamAux /= 50; PgamAux = -1+2*(PgamAux>ar);
-          LSgamAux += PgamAux*std::min(0.03,1/sqrt(i));
+          LSgamAux += PgamAux*std::min(0.01,1/sqrt(i));
           PgamAux = 0;
         }
 
-        if(FixTheta == 0)
+        if((FixTheta == 0) & (mixing != "None") & (mixing != "Exponential"))
         {
           PthetaAux /= 50; PthetaAux = -1+2*(PthetaAux>ar);
-          LSthetaAux += PthetaAux*std::min(0.03,1/sqrt(i));
+          LSthetaAux += PthetaAux*std::min(0.01,1/sqrt(i));
           PthetaAux = 0;
         }
 
         if(mixing == "LogNormal")
         {
           PlambdaAux /= (50 / lambdaPeriod); PlambdaAux = -1+2*arma::conv_to<arma::mat>::from(PlambdaAux>ar);
-          LSlambdaAux += PlambdaAux*std::min(0.03,1/sqrt(i));
+          LSlambdaAux += PlambdaAux*std::min(0.01,1/sqrt(i));
           PlambdaAux = arma::zeros(n);
         }
 

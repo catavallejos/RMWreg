@@ -453,7 +453,7 @@ RMWreg_logML <- function(Chain,
   ls.theta0 = median(ls.theta)
 
   # NON-ADAPTIVE RUN OF THE CHAIN
-  chain.nonadapt = RMWreg_MCMC(round(0.5*N)*Thin, Thin, Burn = Thin, Time, Event, DesignMat,
+  chain.nonadapt = RMWreg_MCMC(N*Thin, Thin, Burn = round(0.25*N)*Thin, Time, Event, DesignMat,
                                Mixing = Mixing, BaseModel = BaseModel,
                                PriorCV = PriorCV, PriorMeanCV = PriorMeanCV,
                                Hyp1Gam = Hyp1Gam, Hyp2Gam = Hyp2Gam, AR = AR,
@@ -500,7 +500,7 @@ RMWreg_logML <- function(Chain,
   if(!(Mixing %in% c("None", "Exponential")))
   {
     # REDUCED CHAIN WITH FIXED THETA
-    chain.theta = RMWreg_MCMC(round(0.5*N)*Thin, Thin, Burn = Thin, Time, Event, DesignMat,
+    chain.theta = RMWreg_MCMC(N*Thin, Thin, Burn = round(0.25*N)*Thin, Time, Event, DesignMat,
                               Mixing = Mixing, BaseModel = BaseModel,
                               PriorCV = PriorCV, PriorMeanCV = PriorMeanCV,
                               Hyp1Gam = Hyp1Gam, Hyp2Gam = Hyp2Gam, AR = AR,
@@ -541,7 +541,7 @@ RMWreg_logML <- function(Chain,
   if(BaseModel == "Weibull")
   {
     # REDUCED CHAIN WITH FIXED THETA + GAMMA
-    chain.gam = RMWreg_MCMC(round(0.5*N)*Thin, Thin, Burn = Thin, Time, Event, DesignMat,
+    chain.gam = RMWreg_MCMC(N*Thin, Thin, Burn = round(0.25*N)*Thin, Time, Event, DesignMat,
                             Mixing = Mixing, BaseModel = BaseModel,
                             PriorCV = PriorCV, PriorMeanCV = PriorMeanCV,
                             Hyp1Gam = Hyp1Gam, Hyp2Gam = Hyp2Gam, AR = AR,
@@ -595,7 +595,7 @@ RMWreg_logML <- function(Chain,
   {
     print(j.beta)
     beta0 = t(chain.prev$beta[N.aux,]); beta0[j.beta+1] = beta.star[j.beta+1]
-    chain.next = RMWreg_MCMC(round(0.5*N)*Thin, Thin, Burn = Thin, Time, Event, DesignMat,
+    chain.next = RMWreg_MCMC(N*Thin, Thin, Burn = round(0.25*N)*Thin, Time, Event, DesignMat,
                              Mixing = Mixing, BaseModel = BaseModel,
                              PriorCV = PriorCV, PriorMeanCV = PriorMeanCV,
                              Hyp1Gam = Hyp1Gam, Hyp2Gam = Hyp2Gam, AR = AR,
