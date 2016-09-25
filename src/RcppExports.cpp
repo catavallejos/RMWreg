@@ -22,8 +22,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // HiddenRMWreg_MCMC
-Rcpp::List HiddenRMWreg_MCMC(int N, int thin, int burn, NumericVector Time, NumericVector Event, NumericMatrix X, String mixing, double const& hyp1_gam, double const& hyp2_gam, String const& PriorCV, double const& hyp_theta, NumericVector beta0, double gam0, double theta0, int Adapt, double ar, int StoreAdapt, int EndAdapt, NumericVector LSbeta0, double LSgam0, double LStheta0, int FixBetaJ, int FixGam, int FixTheta, int PrintProgress, int lambdaPeriod);
-RcppExport SEXP RMWreg_HiddenRMWreg_MCMC(SEXP NSEXP, SEXP thinSEXP, SEXP burnSEXP, SEXP TimeSEXP, SEXP EventSEXP, SEXP XSEXP, SEXP mixingSEXP, SEXP hyp1_gamSEXP, SEXP hyp2_gamSEXP, SEXP PriorCVSEXP, SEXP hyp_thetaSEXP, SEXP beta0SEXP, SEXP gam0SEXP, SEXP theta0SEXP, SEXP AdaptSEXP, SEXP arSEXP, SEXP StoreAdaptSEXP, SEXP EndAdaptSEXP, SEXP LSbeta0SEXP, SEXP LSgam0SEXP, SEXP LStheta0SEXP, SEXP FixBetaJSEXP, SEXP FixGamSEXP, SEXP FixThetaSEXP, SEXP PrintProgressSEXP, SEXP lambdaPeriodSEXP) {
+Rcpp::List HiddenRMWreg_MCMC(int N, int thin, int burn, NumericVector Time, NumericVector Event, NumericMatrix X, String mixing, double const& Hyp1Gam, double const& Hyp2Gam, String const& PriorCV, double const& HypTheta, NumericVector beta0, double gam0, double theta0, int Adapt, double ar, int StoreAdapt, int EndAdapt, NumericVector LSbeta0, double LSgam0, double LStheta0, int FixBetaJ, int FixGam, int FixTheta, int PrintProgress, int lambdaPeriod, int FixLambdaI, double RefLambda);
+RcppExport SEXP RMWreg_HiddenRMWreg_MCMC(SEXP NSEXP, SEXP thinSEXP, SEXP burnSEXP, SEXP TimeSEXP, SEXP EventSEXP, SEXP XSEXP, SEXP mixingSEXP, SEXP Hyp1GamSEXP, SEXP Hyp2GamSEXP, SEXP PriorCVSEXP, SEXP HypThetaSEXP, SEXP beta0SEXP, SEXP gam0SEXP, SEXP theta0SEXP, SEXP AdaptSEXP, SEXP arSEXP, SEXP StoreAdaptSEXP, SEXP EndAdaptSEXP, SEXP LSbeta0SEXP, SEXP LSgam0SEXP, SEXP LStheta0SEXP, SEXP FixBetaJSEXP, SEXP FixGamSEXP, SEXP FixThetaSEXP, SEXP PrintProgressSEXP, SEXP lambdaPeriodSEXP, SEXP FixLambdaISEXP, SEXP RefLambdaSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;
@@ -34,10 +34,10 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< NumericVector >::type Event(EventSEXP);
     Rcpp::traits::input_parameter< NumericMatrix >::type X(XSEXP);
     Rcpp::traits::input_parameter< String >::type mixing(mixingSEXP);
-    Rcpp::traits::input_parameter< double const& >::type hyp1_gam(hyp1_gamSEXP);
-    Rcpp::traits::input_parameter< double const& >::type hyp2_gam(hyp2_gamSEXP);
+    Rcpp::traits::input_parameter< double const& >::type Hyp1Gam(Hyp1GamSEXP);
+    Rcpp::traits::input_parameter< double const& >::type Hyp2Gam(Hyp2GamSEXP);
     Rcpp::traits::input_parameter< String const& >::type PriorCV(PriorCVSEXP);
-    Rcpp::traits::input_parameter< double const& >::type hyp_theta(hyp_thetaSEXP);
+    Rcpp::traits::input_parameter< double const& >::type HypTheta(HypThetaSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type beta0(beta0SEXP);
     Rcpp::traits::input_parameter< double >::type gam0(gam0SEXP);
     Rcpp::traits::input_parameter< double >::type theta0(theta0SEXP);
@@ -53,7 +53,9 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type FixTheta(FixThetaSEXP);
     Rcpp::traits::input_parameter< int >::type PrintProgress(PrintProgressSEXP);
     Rcpp::traits::input_parameter< int >::type lambdaPeriod(lambdaPeriodSEXP);
-    __result = Rcpp::wrap(HiddenRMWreg_MCMC(N, thin, burn, Time, Event, X, mixing, hyp1_gam, hyp2_gam, PriorCV, hyp_theta, beta0, gam0, theta0, Adapt, ar, StoreAdapt, EndAdapt, LSbeta0, LSgam0, LStheta0, FixBetaJ, FixGam, FixTheta, PrintProgress, lambdaPeriod));
+    Rcpp::traits::input_parameter< int >::type FixLambdaI(FixLambdaISEXP);
+    Rcpp::traits::input_parameter< double >::type RefLambda(RefLambdaSEXP);
+    __result = Rcpp::wrap(HiddenRMWreg_MCMC(N, thin, burn, Time, Event, X, mixing, Hyp1Gam, Hyp2Gam, PriorCV, HypTheta, beta0, gam0, theta0, Adapt, ar, StoreAdapt, EndAdapt, LSbeta0, LSgam0, LStheta0, FixBetaJ, FixGam, FixTheta, PrintProgress, lambdaPeriod, FixLambdaI, RefLambda));
     return __result;
 END_RCPP
 }
@@ -104,6 +106,55 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< String const& >::type Mixing(MixingSEXP);
     Rcpp::traits::input_parameter< String const& >::type BaseModel(BaseModelSEXP);
     __result = Rcpp::wrap(HiddenRMWreg_CaseDeletion(Chain, Time, Event, DesignMat, Mixing, BaseModel));
+    return __result;
+END_RCPP
+}
+// HiddenRMWreg_BFoutlierObs
+double HiddenRMWreg_BFoutlierObs(Rcpp::List Chain, int const& Obs, arma::vec const& RefLambda, arma::vec const& Time, arma::vec const& Event, arma::mat const& DesignMat, String const& PriorCV, double const& HypTheta, double const& Hyp1Gam, double const& Hyp2Gam, String const& Mixing, String const& BaseModel, int thin, int lambdaPeriod, double ar);
+RcppExport SEXP RMWreg_HiddenRMWreg_BFoutlierObs(SEXP ChainSEXP, SEXP ObsSEXP, SEXP RefLambdaSEXP, SEXP TimeSEXP, SEXP EventSEXP, SEXP DesignMatSEXP, SEXP PriorCVSEXP, SEXP HypThetaSEXP, SEXP Hyp1GamSEXP, SEXP Hyp2GamSEXP, SEXP MixingSEXP, SEXP BaseModelSEXP, SEXP thinSEXP, SEXP lambdaPeriodSEXP, SEXP arSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< Rcpp::List >::type Chain(ChainSEXP);
+    Rcpp::traits::input_parameter< int const& >::type Obs(ObsSEXP);
+    Rcpp::traits::input_parameter< arma::vec const& >::type RefLambda(RefLambdaSEXP);
+    Rcpp::traits::input_parameter< arma::vec const& >::type Time(TimeSEXP);
+    Rcpp::traits::input_parameter< arma::vec const& >::type Event(EventSEXP);
+    Rcpp::traits::input_parameter< arma::mat const& >::type DesignMat(DesignMatSEXP);
+    Rcpp::traits::input_parameter< String const& >::type PriorCV(PriorCVSEXP);
+    Rcpp::traits::input_parameter< double const& >::type HypTheta(HypThetaSEXP);
+    Rcpp::traits::input_parameter< double const& >::type Hyp1Gam(Hyp1GamSEXP);
+    Rcpp::traits::input_parameter< double const& >::type Hyp2Gam(Hyp2GamSEXP);
+    Rcpp::traits::input_parameter< String const& >::type Mixing(MixingSEXP);
+    Rcpp::traits::input_parameter< String const& >::type BaseModel(BaseModelSEXP);
+    Rcpp::traits::input_parameter< int >::type thin(thinSEXP);
+    Rcpp::traits::input_parameter< int >::type lambdaPeriod(lambdaPeriodSEXP);
+    Rcpp::traits::input_parameter< double >::type ar(arSEXP);
+    __result = Rcpp::wrap(HiddenRMWreg_BFoutlierObs(Chain, Obs, RefLambda, Time, Event, DesignMat, PriorCV, HypTheta, Hyp1Gam, Hyp2Gam, Mixing, BaseModel, thin, lambdaPeriod, ar));
+    return __result;
+END_RCPP
+}
+// HiddenRMWreg_BFoutlier
+arma::vec HiddenRMWreg_BFoutlier(Rcpp::List Chain, arma::vec const& RefLambda, arma::vec const& Time, arma::vec const& Event, arma::mat const& DesignMat, String const& PriorCV, double const& HypTheta, double const& Hyp1Gam, double const& Hyp2Gam, String const& Mixing, String const& BaseModel, int thin, int lambdaPeriod, double ar);
+RcppExport SEXP RMWreg_HiddenRMWreg_BFoutlier(SEXP ChainSEXP, SEXP RefLambdaSEXP, SEXP TimeSEXP, SEXP EventSEXP, SEXP DesignMatSEXP, SEXP PriorCVSEXP, SEXP HypThetaSEXP, SEXP Hyp1GamSEXP, SEXP Hyp2GamSEXP, SEXP MixingSEXP, SEXP BaseModelSEXP, SEXP thinSEXP, SEXP lambdaPeriodSEXP, SEXP arSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< Rcpp::List >::type Chain(ChainSEXP);
+    Rcpp::traits::input_parameter< arma::vec const& >::type RefLambda(RefLambdaSEXP);
+    Rcpp::traits::input_parameter< arma::vec const& >::type Time(TimeSEXP);
+    Rcpp::traits::input_parameter< arma::vec const& >::type Event(EventSEXP);
+    Rcpp::traits::input_parameter< arma::mat const& >::type DesignMat(DesignMatSEXP);
+    Rcpp::traits::input_parameter< String const& >::type PriorCV(PriorCVSEXP);
+    Rcpp::traits::input_parameter< double const& >::type HypTheta(HypThetaSEXP);
+    Rcpp::traits::input_parameter< double const& >::type Hyp1Gam(Hyp1GamSEXP);
+    Rcpp::traits::input_parameter< double const& >::type Hyp2Gam(Hyp2GamSEXP);
+    Rcpp::traits::input_parameter< String const& >::type Mixing(MixingSEXP);
+    Rcpp::traits::input_parameter< String const& >::type BaseModel(BaseModelSEXP);
+    Rcpp::traits::input_parameter< int >::type thin(thinSEXP);
+    Rcpp::traits::input_parameter< int >::type lambdaPeriod(lambdaPeriodSEXP);
+    Rcpp::traits::input_parameter< double >::type ar(arSEXP);
+    __result = Rcpp::wrap(HiddenRMWreg_BFoutlier(Chain, RefLambda, Time, Event, DesignMat, PriorCV, HypTheta, Hyp1Gam, Hyp2Gam, Mixing, BaseModel, thin, lambdaPeriod, ar));
     return __result;
 END_RCPP
 }

@@ -7,7 +7,7 @@
 #' @param Thin Thining period for the MCMC sampler. Use \code{Thin>=2}.
 #' @param Burn Burn-in period for the MCMC sampler. Use \code{Burn>=1}, \code{Burn<N}, \code{Burn} being a multiple of \code{Thin}.
 #' @param Time Vector of length \code{n} containing survival times
-#' @param Event Vector of length \code{n} containing event indicators (\code{TRUE} / \code{1} is the event is observed, \code{FALSE} / \code{0} is the event is censored)
+#' @param Event Vector of length \code{n} containing event indicators (\code{TRUE} / \code{1} is the event is observed, \code{FALSE} / \code{0} is the event is Eventored)
 #' @param Mixing Mixing distribution assigned to the (frailty) random effects. Possible values are
 #' \code{"None", "Exponential", "Gamma", "InvGamma", "InvGauss", "LogNormal"}
 #' @param BaseModel If \code{BaseModel = "Weibull"}, a RMW regression is used. If \code{BaseModel = "Exponential"}, a RME regression is used.
@@ -88,9 +88,9 @@ RMWreg_MCMC <- function(N, Thin, Burn,
     stop("Invalid value for 'PriorCV'")
   if(PriorMeanCV <= 1)
     stop("Invalid value for 'PriorMeanCV'")
-  if(PriorMeanCV >= sqrt(3) & Mixing == "InvGamma")
+  if(PriorMeanCV >= sqrt(3) & Mixing == "InvGamma" & BaseModel == "Exponential")
     stop("Invalid value for 'PriorMeanCV' (must be below sqrt(3) when Mixing == 'InvGamma')")
-  if(PriorMeanCV >= sqrt(5) & Mixing == "InvGauss")
+  if(PriorMeanCV >= sqrt(5) & Mixing == "InvGauss" & BaseModel == "Exponential")
     stop("Invalid value for 'PriorMeanCV' (must be below sqrt(5) when Mixing == 'InvGauss')")
 
   args <- list(...)
@@ -121,6 +121,8 @@ RMWreg_MCMC <- function(N, Thin, Burn,
   FixBetaJ = ifelse("FixBetaJ" %in% names(args), args$FixBetaJ, 0)
   FixGam = ifelse("FixGam" %in% names(args), args$FixGam, FALSE)
   FixTheta = ifelse("FixTheta" %in% names(args), args$FixTheta, FALSE)
+  FixLambdaI = ifelse("FixLambdaI" %in% names(args), args$FixLambdaI, 0)
+  RefLambda = ifelse("RefLambda" %in% names(args), args$RefLambda, 1)
 
   # Storage/console parameters
   PrintProgress = ifelse("PrintProgress" %in% names(args), args$PrintProgress, TRUE)
@@ -139,17 +141,14 @@ RMWreg_MCMC <- function(N, Thin, Burn,
   if(PriorCV == "TruncExp") { HypTheta = 1 / (PriorMeanCV - 1)} # E(cv) = 1 + 1/a
   if(PriorCV == "Pareto") { HypTheta = PriorMeanCV / (PriorMeanCV - 1)} # E(cv) = b/(b − 1)
 
-  Time = system.time(Chain <- HiddenRMWreg_MCMC(N, Thin, Burn,
-                            Time, Event, DesignMat,
-                            Mixing,
-                            Hyp1Gam, Hyp2Gam,
-                            PriorCV, HypTheta,
-                            Start$beta0, Start$gam0, Start$theta0,
-                            as.numeric(Adapt), AR,
-                            as.numeric(StoreAdapt), StopAdapt,
-                            StartAdapt$LSbeta0, StartAdapt$LSgam0, StartAdapt$LStheta0,
-                            FixBetaJ, as.numeric(FixGam), as.numeric(FixTheta),
-                            as.numeric(PrintProgress), lambdaPeriod))
+  Time = system.time(Chain <- HiddenRMWreg_MCMC(N, Thin, Burn, Time, Event, DesignMat,
+                                                Mixing, Hyp1Gam, Hyp2Gam, PriorCV, HypTheta,
+                                                Start$beta0, Start$gam0, Start$theta0,
+                                                as.numeric(Adapt), AR, as.numeric(StoreAdapt), StopAdapt,
+                                                StartAdapt$LSbeta0, StartAdapt$LSgam0, StartAdapt$LStheta0,
+                                                FixBetaJ, as.numeric(FixGam), as.numeric(FixTheta),
+                                                as.numeric(PrintProgress), lambdaPeriod,
+                                                FixLambdaI, RefLambda))
 
   cat("-------------------------------------------------------------------- \n")
   cat("MCMC running time \n")
@@ -217,54 +216,45 @@ RMWreg_MCMC <- function(N, Thin, Burn,
 # LOG-LIKELIHOOD
 Hiddenf.joint.RME.LN=function(lambda,Time,alpha,theta)
 {
-  aux1=exp(-alpha*lambda*Time)
-  aux2=exp(-(1/(2*theta))*(log(lambda))^2)
-  aux=aux1*aux2
-
+  aux = exp(-alpha*lambda*Time) * exp(-(1/(2*theta))*(log(lambda))^2)
   return(aux)
 }
 
 Hiddenf.RME.LN=function(Time,alpha,theta)
 {
-  aux1=alpha*(2*pi*theta)^(-1/2)
-  aux2=integrate(Hiddenf.joint.RME.LN,lower=0,upper=Inf,Time=Time,alpha=alpha,theta=theta)$value
-  aux=aux1*aux2
-
+  aux = alpha*(2*pi*theta)^(-1/2) * integrate(Hiddenf.joint.RME.LN,lower=0,upper=Inf,Time=Time,alpha=alpha,theta=theta)$value
   return(aux)
 }
 
 HiddenS.joint.RME.LN=function(lambda,Time,alpha,theta)
 {
-  aux1=(lambda^(-1))*exp(-alpha*lambda*Time)
-  aux2=exp(-(1/(2*theta))*(log(lambda))^2)
-  aux=aux1*aux2
-
+  aux = (lambda^(-1))*exp(-alpha*lambda*Time) * exp(-(1/(2*theta))*(log(lambda))^2)
   return(aux)
 }
 
 HiddenS.RME.LN=function(Time,alpha,theta)
 {
-  aux1=(2*pi*theta)^(-1/2)
-  aux2=integrate(HiddenS.joint.RME.LN,lower=0.00001,upper=Inf,Time=Time,alpha=alpha,theta=theta)$value
-  aux=aux1*aux2
-
+  aux = (2*pi*theta)^(-1/2) * integrate(HiddenS.joint.RME.LN,lower=0.00001,upper=Inf,Time=Time,alpha=alpha,theta=theta)$value
   return(aux)
 }
 
-Hiddenlog.lik.RMW.LN.aux<-function(Time,Cens,X,beta,gam=1,theta)
+Hiddenlog.lik.RMW.LN.aux<-function(Time, Event, DesignMat, beta, gam = 1, theta)
 {
-  n=length(Time); aux<-rep(0,n); RATE=exp(-gam*X%*%beta)
-  for(i in 1:n)
+  RATE = exp(-gam * DesignMat%*%beta)
+  f.aux <- function(i, Event, Time, RATE, theta)
   {
-    if(Cens[i]==1) {aux[i]=log(Hiddenf.RME.LN(Time=Time[i],alpha=RATE[i],theta=theta))}
-    if(Cens[i]==0) {aux[i]=log(HiddenS.RME.LN(Time=Time[i],alpha=RATE[i],theta=theta))}
+    if(Event[i]==1) {out = log(Hiddenf.RME.LN(Time=Time[i],alpha=RATE[i],theta=theta))}
+    if(Event[i]==0) {out = log(HiddenS.RME.LN(Time=Time[i],alpha=RATE[i],theta=theta))}
+    return(out)
   }
+  aux = sapply(as.list(1:length(Time)), FUN = f.aux,
+               Event = Event, Time = Time, RATE = RATE, theta = theta, simplify = TRUE)
   return(aux)
 }
 
-Hiddenlog.lik.RMWLN<-function(Time, Cens, X, beta, gam=1, theta, BaseModel)
+Hiddenlog.lik.RMWLN<-function(Time, Event, DesignMat, beta, gam=1, theta, BaseModel)
 {
-  aux=sum(Hiddenlog.lik.RMW.LN.aux(Time^gam,Cens,X,beta,gam,theta) + I(BaseModel=="Weibull")*(Cens*log(gam)+Cens*(gam-1)*log(Time)))
+  aux = sum(Hiddenlog.lik.RMW.LN.aux(Time^gam,Event,DesignMat,beta,gam,theta) + I(BaseModel=="Weibull")*(Event*log(gam)+Event*(gam-1)*log(Time)))
   return(aux)
 }
 
@@ -275,12 +265,22 @@ HiddenRMWreg_DIC_LN <- function(Chain, Time, Event, DesignMat, Mixing, BaseModel
   gam_hat = median(gam); theta_hat = median(theta)
 
   # LOG-LIKELIHOOD FOR EACH DRAW
-  L<-rep(0,times=nrow(beta))
-  for(iter in 1:nrow(beta))
+  f.aux <- function(iter, Time, Event, DesignMat,
+                    beta, gam, theta, BaseModel)
   {
-    L[iter] = Hiddenlog.lik.RMWLN(Time, Event, DesignMat,
-                                  beta=beta[iter,], gam = gam[iter,], theta = theta[iter,], BaseModel)
+    out = Hiddenlog.lik.RMWLN(Time, Event, DesignMat,
+                              beta=beta[iter,], gam = gam[iter,], theta = theta[iter,], BaseModel)
+    return(out)
   }
+  L = sapply(as.list(1:nrow(beta)), FUN = f.aux,
+             Time = Time, Event = Event, DesignMat = DesignMat,
+             beta = beta, gam = gam, theta = theta, BaseModel = BaseModel, simplify = TRUE)
+
+#  for(iter in 1:nrow(beta))
+#  {
+#    L[iter] = Hiddenlog.lik.RMWLN(Time, Event, DesignMat,
+#                                  beta=beta[iter,], gam = gam[iter,], theta = theta[iter,], BaseModel)
+#  }
   pd = -2*mean(L) + 2*Hiddenlog.lik.RMWLN(Time, Event, DesignMat,
                                           beta = beta_hat, gam = gam_hat, theta = theta_hat, BaseModel)
   return(-2*mean(L) + pd)
@@ -306,16 +306,30 @@ HiddenRMWreg_CaseDeletion_LN <- function(Chain, Time, Event, DesignMat, Mixing, 
   N = nrow(beta); n = length(Time);
   logCPO=rep(0,times=n); KL.aux=rep(0,times=n)
 
+  f.aux <- function(iter, Time, Event, DesignMat,
+                    beta, gam, theta, BaseModel)
+  {
+    out = Hiddenlog.lik.RMWLN(Time, Event, DesignMat,
+                              beta = beta[iter,], gam = gam[iter,], theta = theta[iter,],
+                              BaseModel)
+    return(out)
+  }
+
   for(i in 1:n)
   {
-    aux1 = rep(0, times = N); aux2 = rep(0, times = N)
-    for(ITER in 1:N)
-    {
-      aux2[ITER] = Hiddenlog.lik.RMWLN(Time[i], Event[i], DesignMat[i,],
-                                       beta = beta[ITER,], gam = gam[ITER,], theta = theta[ITER,],
-                                       BaseModel)
-      aux1[ITER] = exp(-aux2[ITER])
-    }
+    aux2 = sapply(as.list(1:N), FUN = f.aux,
+                  Time = Time[i], Event = Event[i], DesignMat = DesignMat[i,],
+                  beta = beta, gam = gam, theta = theta, BaseModel = BaseModel, simplify = TRUE)
+    aux1 = exp(-aux2)
+
+#    aux1 = rep(0, times = N); aux2 = rep(0, times = N)
+#    for(ITER in 1:N)
+#    {
+#      aux2[ITER] = Hiddenlog.lik.RMWLN(Time[i], Event[i], DesignMat[i,],
+#                                       beta = beta[ITER,], gam = gam[ITER,], theta = theta[ITER,],
+#                                       BaseModel)
+#      aux1[ITER] = exp(-aux2[ITER])
+#    }
     logCPO[i] = -log(mean(aux1))
     KL.aux[i] = mean(aux2)
   }
@@ -439,7 +453,7 @@ RMWreg_logML <- function(Chain,
   ls.theta0 = median(ls.theta)
 
   # NON-ADAPTIVE RUN OF THE CHAIN
-  chain.nonadapt = RMWreg_MCMC(0.5*N*Thin, Thin, Burn = Thin, Time, Event, DesignMat,
+  chain.nonadapt = RMWreg_MCMC(round(0.5*N)*Thin, Thin, Burn = Thin, Time, Event, DesignMat,
                                Mixing = Mixing, BaseModel = BaseModel,
                                PriorCV = PriorCV, PriorMeanCV = PriorMeanCV,
                                Hyp1Gam = Hyp1Gam, Hyp2Gam = Hyp2Gam, AR = AR,
@@ -486,7 +500,7 @@ RMWreg_logML <- function(Chain,
   if(!(Mixing %in% c("None", "Exponential")))
   {
     # REDUCED CHAIN WITH FIXED THETA
-    chain.theta = RMWreg_MCMC(0.5*N*Thin, Thin, Burn = Thin, Time, Event, DesignMat,
+    chain.theta = RMWreg_MCMC(round(0.5*N)*Thin, Thin, Burn = Thin, Time, Event, DesignMat,
                               Mixing = Mixing, BaseModel = BaseModel,
                               PriorCV = PriorCV, PriorMeanCV = PriorMeanCV,
                               Hyp1Gam = Hyp1Gam, Hyp2Gam = Hyp2Gam, AR = AR,
@@ -522,12 +536,12 @@ RMWreg_logML <- function(Chain,
     LPO.theta = log(mean(po1.theta)/mean(po2.theta))
     print("Posterior ordinate theta ready!")
   }
-  else { LPO.theta = 0 }
+  else { chain.theta = chain.nonadapt; LPO.theta = 0 }
 
   if(BaseModel == "Weibull")
   {
     # REDUCED CHAIN WITH FIXED THETA + GAMMA
-    chain.gam = RMWreg_MCMC(0.5*N*Thin, Thin, Burn = Thin, Time, Event, DesignMat,
+    chain.gam = RMWreg_MCMC(round(0.5*N)*Thin, Thin, Burn = Thin, Time, Event, DesignMat,
                             Mixing = Mixing, BaseModel = BaseModel,
                             PriorCV = PriorCV, PriorMeanCV = PriorMeanCV,
                             Hyp1Gam = Hyp1Gam, Hyp2Gam = Hyp2Gam, AR = AR,
@@ -542,7 +556,6 @@ RMWreg_logML <- function(Chain,
                             FixTheta = TRUE, FixGam = TRUE)
 
     # POSTERIOR ORDINATE - gam
-    if(Mixing %in% c("None", "Exponential")) {chain.theta = chain.nonadapt}
     po1.gam = rep(0, times = N.aux); po2.gam = rep(0, times = N.aux)
     for(i in 1:N.aux)
     {
@@ -582,7 +595,7 @@ RMWreg_logML <- function(Chain,
   {
     print(j.beta)
     beta0 = t(chain.prev$beta[N.aux,]); beta0[j.beta+1] = beta.star[j.beta+1]
-    chain.next = RMWreg_MCMC(0.5*N*Thin, Thin, Burn = Thin, Time, Event, DesignMat,
+    chain.next = RMWreg_MCMC(round(0.5*N)*Thin, Thin, Burn = Thin, Time, Event, DesignMat,
                              Mixing = Mixing, BaseModel = BaseModel,
                              PriorCV = PriorCV, PriorMeanCV = PriorMeanCV,
                              Hyp1Gam = Hyp1Gam, Hyp2Gam = Hyp2Gam, AR = AR,
@@ -622,3 +635,45 @@ RMWreg_logML <- function(Chain,
 
   return(LML)
 }
+
+
+RMWreg_BFoutlier <- function(Chain, RefLambda,
+                             Time, Event, DesignMat,
+                             Mixing, BaseModel, ...)
+{
+  args <- list(...)
+
+  if(Mixing == "None") stop("This function cannot be applied to 'Mixing = 'None''")
+  if(Mixing %in% c("Gamma", "InvGamma", "InvGauss", "LogNormal"))
+  {
+    if(!("PriorCV" %in% names(args))) stop("Value of 'PriorCV' is missing")
+    else { PriorCV = args$PriorCV }
+    if(!("HypTheta" %in% names(args))) stop("Value of 'HypTheta' is missing")
+    else { HypTheta = args$HypTheta }
+    if(!("Hyp1Gam" %in% names(args))) stop("Value of 'Hyp1Gam' is missing")
+    else { Hyp1Gam = args$Hyp1Gam }
+    if(!("Hyp2Gam" %in% names(args))) stop("Value of 'Hyp2Gam' is missing")
+    else { Hyp2Gam = args$Hyp2Gam }
+    if(!("Thin" %in% names(args))) stop("Value of 'Thin' is missing")
+    else { Thin = args$Thin }
+    if(!("Burn" %in% names(args))) stop("Value of 'Burn' is missing")
+    else { Burn = args$Burn }
+    if(!("lambdaPeriod" %in% names(args))) stop("Value of 'lambdaPeriod' is missing")
+    else { lambdaPeriod = args$lambdaPeriod }
+    if(!("AR" %in% names(args))) stop("Value of 'AR' is missing")
+    else { AR = args$AR }
+
+    BF = 1
+  }
+  if(Mixing == "Exponential")
+  {
+    BF = HiddenRMWreg_BFoutlier(Chain, RefLambda,
+                                Time, Event, DesignMat,
+                                PriorCV = "None", HypTheta = 0,
+                                Hyp1Gam = 0, Hyp2Gam = 0,
+                                Mixing, BaseModel,
+                                thin = 0, lambdaPeriod = 0, ar = 0)
+  }
+  return(BF)
+}
+

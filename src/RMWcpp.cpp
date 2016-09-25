@@ -646,9 +646,9 @@ arma::vec gamUpdate(double const& omega2,
                     double const& theta,
                     arma::vec const& lambda,
                     String const& PriorCV,
-                    double const& hyp_theta,
-                    double const& hyp1_gam,
-                    double const& hyp2_gam,
+                    double const& HypTheta,
+                    double const& Hyp1Gam,
+                    double const& Hyp2Gam,
                     String const& mixing,
                     double const& lower_bound,
                     int FIX_THETA = 0)
@@ -674,11 +674,11 @@ arma::vec gamUpdate(double const& omega2,
       log_aux -= sum(lambda % (pow(exp(-X*beta) % Time, y) - pow(exp(-X*beta) % Time, gam0)));
       if(FIX_THETA == 0)
       {
-        log_aux += HiddenLogPriorTheta(theta, y, hyp_theta, PriorCV, mixing);
-        log_aux -= HiddenLogPriorTheta(theta, gam0, hyp_theta, PriorCV, mixing);
+        log_aux += HiddenLogPriorTheta(theta, y, HypTheta, PriorCV, mixing);
+        log_aux -= HiddenLogPriorTheta(theta, gam0, HypTheta, PriorCV, mixing);
       }
-      log_aux += R::dgamma(y, hyp1_gam, hyp2_gam, 1);
-      log_aux -= R::dgamma(gam0, hyp1_gam, hyp2_gam, 1);
+      log_aux += R::dgamma(y, Hyp1Gam, Hyp2Gam, 1);
+      log_aux -= R::dgamma(gam0, Hyp1Gam, Hyp2Gam, 1);
       if(mixing == "LogNormal")
       {
         log_aux -= Time.n_elem * log(y / gam0);
@@ -702,7 +702,7 @@ arma::vec thetaUpdate(double const& omega2,
                       double const& gam,
                       arma::vec const& lambda,
                       String const& PriorCV,
-                      double const& hyp_theta,
+                      double const& HypTheta,
                       String const& mixing,
                       double const& n)
 {
@@ -742,8 +742,8 @@ arma::vec thetaUpdate(double const& omega2,
     log_aux -= 0.5 * (pow(y,-1) - pow(theta0,-1)) * sum(pow(log(lambda),2));
   }
   // PRIOR FACTOR
-  log_aux += HiddenLogPriorTheta(y, gam, hyp_theta, PriorCV, mixing);
-  log_aux -= HiddenLogPriorTheta(theta0, gam, hyp_theta, PriorCV, mixing);
+  log_aux += HiddenLogPriorTheta(y, gam, HypTheta, PriorCV, mixing);
+  log_aux -= HiddenLogPriorTheta(theta0, gam, HypTheta, PriorCV, mixing);
 
   // ACCEPT/REJECT
   if((arma::is_finite(log_aux)) & (log(u) < log_aux)) { out(0) = y; out(1) = 1; }
@@ -845,10 +845,10 @@ Rcpp::List HiddenRMWreg_MCMC(int N, // Total number of MCMC draws
                              NumericVector Event,
                              NumericMatrix X,
                              String mixing,
-                             double const& hyp1_gam,
-                             double const& hyp2_gam,
+                             double const& Hyp1Gam,
+                             double const& Hyp2Gam,
                              String const& PriorCV,
-                             double const& hyp_theta,
+                             double const& HypTheta,
                              NumericVector beta0,
                              double gam0,
                              double theta0,
@@ -863,7 +863,9 @@ Rcpp::List HiddenRMWreg_MCMC(int N, // Total number of MCMC draws
                              int FixGam,
                              int FixTheta,
                              int PrintProgress,
-                             int lambdaPeriod)
+                             int lambdaPeriod,
+                             int FixLambdaI, // If FixLambda = 0, all lambda's are updated.
+                             double RefLambda)
 {
   // NUMBER OF REGRESSORS, SAMPLE SIZE AND NUMBER OF STORED DRAWS
   int k = beta0.size(); int n = Time.size(); int Naux = N/thin - burn/thin;
@@ -950,7 +952,7 @@ Rcpp::List HiddenRMWreg_MCMC(int N, // Total number of MCMC draws
       gamAux = gamUpdate(exp(LSgamAux), gamAux(0),
                          Time_arma, Event_arma, X_arma,
                          betaAux.col(0), thetaAux(0), lambdaAux,
-                         PriorCV, hyp_theta, hyp1_gam, hyp2_gam,
+                         PriorCV, HypTheta, Hyp1Gam, Hyp2Gam,
                          mixing, 0.06, FixTheta); // lower_bound
       PgamAux += gamAux(1); if(i>=burn) {gamAccept += gamAux(1);}
     }
@@ -959,7 +961,7 @@ Rcpp::List HiddenRMWreg_MCMC(int N, // Total number of MCMC draws
     {
       thetaAux = thetaUpdate(exp(LSthetaAux), thetaAux(0),
                              gamAux(0), lambdaAux,
-                             PriorCV, hyp_theta, mixing, n);
+                             PriorCV, HypTheta, mixing, n);
       PthetaAux += thetaAux(1); if(i>=burn) {thetaAccept += thetaAux(1);}
     }
 
@@ -982,6 +984,7 @@ Rcpp::List HiddenRMWreg_MCMC(int N, // Total number of MCMC draws
         PlambdaAux += lambdaAux_LN.col(1); if(i>=burn) {lambdaAccept += lambdaAux_LN.col(1);}
       }
     }
+    if(FixLambdaI != 0) { lambdaAux(FixLambdaI - 1) = RefLambda; }
 
     // STOP ADAPTING THE PROPOSAL VARIANCES AFTER EndAdapt ITERATIONS
     if((i < EndAdapt) & (Adapt == 1))
@@ -1161,13 +1164,13 @@ double logS_RMEIGAM_d(double const& Time,
 // Debug: function tested to match original R implementation
 // [[Rcpp::export]]
 double HiddenLogLik(arma::vec const& Time,
-              arma::vec const& Event,
-              arma::mat const& DesignMat,
-              arma::vec const& beta,
-              double const& gam,
-              double const& theta,
-              String const& Mixing,
-              String const& BaseModel)
+                    arma::vec const& Event,
+                    arma::mat const& DesignMat,
+                    arma::vec const& beta,
+                    double const& gam,
+                    double const& theta,
+                    String const& Mixing,
+                    String const& BaseModel)
 {
   arma::vec out;
   arma::vec Rate = exp(- gam * DesignMat * beta);
@@ -1203,19 +1206,20 @@ double HiddenLogLik(arma::vec const& Time,
   return(sum(out));
 }
 
-// LOG-LIKELIHOOD
+// LOG-LIKELIHOOD (individual observations)
 // Debug: function tested to match original R implementation
-double LogLik_d(double const& Time,
-              double const& Event,
-              arma::vec const& DesignMat,
-              arma::vec const& beta,
-              double const& gam,
-              double const& theta,
-              String const& Mixing,
-              String const& BaseModel)
+double HiddenLogLikInd(double const& Time,
+                       double const& Event,
+                       arma::vec const& DesignMat,
+                       arma::vec const& beta,
+                       double const& gam,
+                       double const& theta,
+                       String const& Mixing,
+                       String const& BaseModel,
+                       double const& ExtraConst)
 {
   double out;
-  double Rate = exp(- gam * sum(DesignMat % beta));
+  double Rate = exp(- gam * sum(DesignMat % beta)) * ExtraConst;
 
   if(Mixing == "None")
   {
@@ -1311,14 +1315,14 @@ arma::mat HiddenRMWreg_CaseDeletion(Rcpp::List const& Chain,
 
   for(int i = 0; i < n; i++)
   {
-    offset(i) = LogLik_d(Time(i), Event(i), DesignMat.row(i).t(),
+    offset(i) = HiddenLogLikInd(Time(i), Event(i), DesignMat.row(i).t(),
                          beta.row(0).t(), gam(0), theta(0),
-                         Mixing, BaseModel);
+                         Mixing, BaseModel, 1);
     for(int iter = 0; iter < N; iter++)
     {
-      aux2(iter) = LogLik_d(Time(i), Event(i), DesignMat.row(i).t(),
+      aux2(iter) = HiddenLogLikInd(Time(i), Event(i), DesignMat.row(i).t(),
                             beta.row(iter).t(), gam(iter), theta(iter),
-                            Mixing, BaseModel);
+                            Mixing, BaseModel, 1);
       aux1(iter) = exp(-aux2(iter) + offset(i));
     }
     logCPO(i) = - log(mean(aux1)) + offset(i);
@@ -1375,9 +1379,9 @@ double AcceptProb_gam(double const& gam0,
                       double const& theta,
                       arma::vec const& lambda,
                       String const& PriorCV,
-                      double const& hyp_theta,
-                      double const& hyp1_gam,
-                      double const& hyp2_gam,
+                      double const& HypTheta,
+                      double const& Hyp1Gam,
+                      double const& Hyp2Gam,
                       String const& mixing,
                       double const& lower_bound,
                       int FIX_THETA = 0)
@@ -1390,11 +1394,11 @@ double AcceptProb_gam(double const& gam0,
     log_aux -= sum(lambda % (pow(exp(-X*beta) % Time, gam1) - pow(exp(-X*beta) % Time, gam0)));
     if(FIX_THETA == 0)
     {
-      log_aux += HiddenLogPriorTheta(theta, gam1, hyp_theta, PriorCV, mixing);
-      log_aux -= HiddenLogPriorTheta(theta, gam0, hyp_theta, PriorCV, mixing);
+      log_aux += HiddenLogPriorTheta(theta, gam1, HypTheta, PriorCV, mixing);
+      log_aux -= HiddenLogPriorTheta(theta, gam0, HypTheta, PriorCV, mixing);
     }
-    log_aux += R::dgamma(gam1, hyp1_gam, hyp2_gam, 1);
-    log_aux -= R::dgamma(gam0, hyp1_gam, hyp2_gam, 1);
+    log_aux += R::dgamma(gam1, Hyp1Gam, Hyp2Gam, 1);
+    log_aux -= R::dgamma(gam0, Hyp1Gam, Hyp2Gam, 1);
     if(mixing == "LogNormal")
     {
       log_aux -= Time.n_elem * log(gam1 / gam0);
@@ -1416,7 +1420,7 @@ double AcceptProb_theta(double const& theta0,
                         double const& gam,
                         arma::vec const& lambda,
                         String const& PriorCV,
-                        double const& hyp_theta,
+                        double const& HypTheta,
                         String const& mixing,
                         double const& n)
 {
@@ -1442,8 +1446,8 @@ double AcceptProb_theta(double const& theta0,
     log_aux -= 0.5 * (pow(theta1,-1) - pow(theta0,-1)) * sum(pow(log(lambda),2));
   }
   // PRIOR FACTOR
-  log_aux += HiddenLogPriorTheta(theta1, gam, hyp_theta, PriorCV, mixing);
-  log_aux -= HiddenLogPriorTheta(theta0, gam, hyp_theta, PriorCV, mixing);
+  log_aux += HiddenLogPriorTheta(theta1, gam, HypTheta, PriorCV, mixing);
+  log_aux -= HiddenLogPriorTheta(theta0, gam, HypTheta, PriorCV, mixing);
 
   log_aux = exp(log_aux);
 
@@ -1455,16 +1459,88 @@ double AcceptProb_theta(double const& theta0,
   else { return(1);}
 }
 
-
-
-
-
-
-
 // ################################################################################
 // ################################################################################
-// # FUNCTIONS SPECIFIC FOR WEIBULL MODEL
+// # FUNCTIONS RELATED TO OUTLIER DETECTION
 // ################################################################################
 // ################################################################################
 
+//                                 int N, // Total number of MCMC draws
+//                                 int burn, // Burning period for MCMC chain
 
+// [[Rcpp::export]]
+double HiddenRMWreg_BFoutlierObs(Rcpp::List Chain,
+                                 int const& Obs,
+                                 arma::vec const& RefLambda,
+                                 arma::vec const& Time,
+                                 arma::vec const& Event,
+                                 arma::mat const& DesignMat,
+                                 String const& PriorCV,
+                                 double const& HypTheta,
+                                 double const& Hyp1Gam,
+                                 double const& Hyp2Gam,
+                                 String const& Mixing,
+                                 String const& BaseModel,
+                                 int thin, // Thinning period for MCMC chain
+                                 int lambdaPeriod,
+                                 double ar)
+{
+  // EXTRACTING CHAINS
+  arma::mat beta = Rcpp::as<arma::mat>(Chain["beta"]);
+  arma::vec gam = Rcpp::as<arma::vec>(Chain["gam"]);
+  arma::vec theta = Rcpp::as<arma::vec>(Chain["theta"]);
+
+  int N = beta.n_rows;
+
+  double BF = 1;
+  arma::vec BF_iter = arma::ones(N);
+
+  if(Mixing == "Exponential")
+  {
+    for(int iter = 0; iter < N; iter++)
+    {
+      BF_iter(iter) = HiddenLogLikInd(Time(Obs), Event(Obs), DesignMat.row(Obs).t(),
+                                      beta.row(iter).t(), gam(iter), theta(iter),
+                                      "None", BaseModel, RefLambda(Obs));
+      BF_iter(iter) -= HiddenLogLikInd(Time(Obs), Event(Obs), DesignMat.row(Obs).t(),
+                                       beta.row(iter).t(), gam(iter), theta(iter),
+                                       Mixing, BaseModel, 1);
+      BF_iter(iter) = exp(BF_iter(iter));
+    }
+    BF = mean(BF_iter);
+  }
+
+  return(BF);
+}
+
+// [[Rcpp::export]]
+arma::vec HiddenRMWreg_BFoutlier(Rcpp::List Chain,
+                                 arma::vec const& RefLambda,
+                                 arma::vec const& Time,
+                                 arma::vec const& Event,
+                                 arma::mat const& DesignMat,
+                                 String const& PriorCV,
+                                 double const& HypTheta,
+                                 double const& Hyp1Gam,
+                                 double const& Hyp2Gam,
+                                 String const& Mixing,
+                                 String const& BaseModel,
+                                 int thin, // Thinning period for MCMC chain
+                                 int lambdaPeriod,
+                                 double ar)
+{
+  int n = Time.n_elem;
+
+  arma::vec BF = arma::ones(n);
+  for(int i = 0; i < n; i++)
+  {
+//    Rcpp::Rcout << "Observation: " << i + 1 << std::endl;
+    BF(i) = HiddenRMWreg_BFoutlierObs(Chain, i, RefLambda,
+                                      Time, Event, DesignMat,
+                                      PriorCV, HypTheta, Hyp1Gam, Hyp2Gam,
+                                      Mixing, BaseModel,
+                                      thin, lambdaPeriod, ar);
+  }
+
+  return(BF);
+}
