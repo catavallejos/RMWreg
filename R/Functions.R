@@ -527,13 +527,17 @@ RMWreg_logML <- function(Chain,
       if(theta.aux <= 2/gam.star & Mixing == "Gamma") { po2.theta[i] = 0 }
       else
       {
-        if(theta.aux <= 0) { po2.theta[i] = 0 }
+        if(theta.aux <= 1 & Mixing == "InvGamma") { po2.theta[i] = 0 }
         else
         {
-          po2.theta[i] = HiddenAcceptProb_theta(theta0 = theta.star, theta1 = theta.aux,
-                                                gam = chain.theta$gam[i],
-                                                lambda = t(chain.theta$lambda[i,]),
-                                                PriorCV, HypTheta, Mixing)
+          if(theta.aux <= 0) { po2.theta[i] = 0 }
+          else
+          {
+            po2.theta[i] = HiddenAcceptProb_theta(theta0 = theta.star, theta1 = theta.aux,
+                                                  gam = chain.theta$gam[i],
+                                                  lambda = t(chain.theta$lambda[i,]),
+                                                  PriorCV, HypTheta, Mixing)
+          }
         }
       }
     }
@@ -639,11 +643,11 @@ RMWreg_logML <- function(Chain,
   print("Posterior ordinate beta ready!")
 
   # LOG-MARGINAL LIKELIHOOD
-#  print(paste("LL.ord:", LL.ord))
-#  print(paste("LP.ord:", LP.ord))
-#  print(paste("LPO.theta:", LPO.theta))
-#  print(paste("LPO.gam:", LPO.gam))
-#  print(paste("sum(LPO.beta):", sum(LPO.beta)))
+  print(paste("LL.ord:", LL.ord))
+  print(paste("LP.ord:", LP.ord))
+  print(paste("LPO.theta:", LPO.theta))
+  print(paste("LPO.gam:", LPO.gam))
+  print(paste("sum(LPO.beta):", (LPO.beta)))
 
   LML = LL.ord + LP.ord - LPO.theta - LPO.gam - sum(LPO.beta)
 
