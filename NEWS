@@ -30,5 +30,8 @@ version 0.0.8: (2016-09-25)
 version 0.0.9: (2016-09-25)
 - Small changes to RMWreg_logML function
 
+version 0.0.10: (2016-09-29)
+- Fixed bug in RMWreg_logML function
+
 TO-DO
 - Extend RMWreg_BFoutlier to the remaining mixing distributions

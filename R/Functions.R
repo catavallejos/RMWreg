@@ -524,13 +524,17 @@ RMWreg_logML <- function(Chain,
                                                                                mean = chain.nonadapt$theta[i],
                                                                                sd = sqrt(exp(ls.theta0)))
       theta.aux = rnorm(n = 1, mean = theta.star, sd = sqrt(exp(ls.theta0)) )
-      if(theta.aux <= 2/gam.star) { po2.theta[i] = 0 }
+      if(theta.aux <= 2/gam.star & Mixing == "Gamma") { po2.theta[i] = 0 }
       else
       {
-        po2.theta[i] = HiddenAcceptProb_theta(theta0 = theta.star, theta1 = theta.aux,
-                                              gam = chain.theta$gam[i],
-                                              lambda = t(chain.theta$lambda[i,]),
-                                              PriorCV, HypTheta, Mixing)
+        if(theta.aux <= 0) { po2.theta[i] = 0 }
+        else
+        {
+          po2.theta[i] = HiddenAcceptProb_theta(theta0 = theta.star, theta1 = theta.aux,
+                                                gam = chain.theta$gam[i],
+                                                lambda = t(chain.theta$lambda[i,]),
+                                                PriorCV, HypTheta, Mixing)
+        }
       }
     }
     LPO.theta = log(mean(po1.theta)/mean(po2.theta))
@@ -568,16 +572,20 @@ RMWreg_logML <- function(Chain,
                                                                             mean = chain.theta$gam[i],
                                                                             sd = sqrt(exp(ls.gam0)))
       gam.aux = rnorm(n = 1, mean = gam.star, sd = sqrt(exp(ls.gam0)))
-      if(gam.aux <= 0.06) { po2.gam[i] = 0 }
+      if(gam.aux <= 0.06 | gam.aux <= 2/theta.star & Mixing == "Gamma") { po2.gam[i]=0 }
       else
       {
-        po2.gam[i] = HiddenAcceptProb_gam(gam0 = gam.star, gam1 = gam.aux,
-                                          Time, Event, DesignMat,
-                                          beta = as.vector(chain.gam$beta[i,]), theta = theta.star,
-                                          lambda = t(chain.gam$lambda[i,]),
-                                          PriorCV, HypTheta, Hyp1Gam, Hyp2Gam,
-                                          Mixing, lower.bound = 0.06)
-        if(is.nan(po2.gam[i])) {print(gam.aux)}
+        if(gam.aux <= 0.06) { po2.gam[i] = 0 }
+        else
+        {
+          po2.gam[i] = HiddenAcceptProb_gam(gam0 = gam.star, gam1 = gam.aux,
+                                            Time, Event, DesignMat,
+                                            beta = as.vector(chain.gam$beta[i,]), theta = theta.star,
+                                            lambda = t(chain.gam$lambda[i,]),
+                                            PriorCV, HypTheta, Hyp1Gam, Hyp2Gam,
+                                            Mixing, lower.bound = 0.06)
+          if(is.nan(po2.gam[i])) {print(gam.aux)}
+        }
       }
     }
     LPO.gam = log(mean(po1.gam) / mean(po2.gam))
@@ -631,6 +639,12 @@ RMWreg_logML <- function(Chain,
   print("Posterior ordinate beta ready!")
 
   # LOG-MARGINAL LIKELIHOOD
+#  print(paste("LL.ord:", LL.ord))
+#  print(paste("LP.ord:", LP.ord))
+#  print(paste("LPO.theta:", LPO.theta))
+#  print(paste("LPO.gam:", LPO.gam))
+#  print(paste("sum(LPO.beta):", sum(LPO.beta)))
+
   LML = LL.ord + LP.ord - LPO.theta - LPO.gam - sum(LPO.beta)
 
   return(LML)
