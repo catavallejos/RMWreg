@@ -100,8 +100,8 @@ RMWreg_MCMC <- function(N, Thin, Burn,
   else Start = list("beta0" = rnorm(k),
                     "gam0" = rexp(1,1)+1,
                     "theta0" = rexp(1,1)+1)
-  if(Mixing == "Gamma") {Start$theta0 = max(Start$theta0, 2/Start$gam0 + 1)}
-  if(Mixing == "InvGamma") {Start$theta0 = max(Start$theta0, 1 + 1)}
+  if((Mixing == "Gamma") & !("Start" %in% names(args))) {Start$theta0 = max(Start$theta0, 2/Start$gam0 + 1)}
+  if((Mixing == "InvGamma") & !("Start" %in% names(args))) {Start$theta0 = max(Start$theta0, 1 + 1)}
 
   if ("StartAdapt" %in% names(args)) { StartAdapt = args$StartAdapt }
   else StartAdapt = list("LSbeta0" = rep(0, times = k),
@@ -358,9 +358,9 @@ HiddenAcceptProb_betaJ <- function(beta0, beta1, gam, Time, Event, DesignMat, la
   Xj <- as.matrix(DesignMat[,-j]); bj <- beta0[-j]; aux0 <- exp(-gam*as.vector(Xj%*%bj))
   # ACCEPTANCE PROBABILITY
   prob = (beta0[j] - beta1[j]) * gam * sum(DesignMat[,j]*Event)
-  prob = prob + sum(aux0 * (Time^gam) * lambda * (exp(-gam*beta0[j]*DesignMat[,j])-exp(-gam*beta1[j]*DesignMat[,j])))
+  prob = prob + sum(aux0 * (Time^gam) * lambda * ( exp(-gam*beta0[j]*DesignMat[,j]) - exp(-gam*beta1[j]*DesignMat[,j]) ))
 
-  prob=min(1,exp(prob))
+  prob = min(1, exp(prob))
 
   return(prob)
 }
@@ -467,8 +467,11 @@ RMWreg_logML <- function(Chain,
                                                  "LStheta0" = ls.theta0))
   if(k>1)	{ beta.star = apply(chain.nonadapt$beta, 2, "median") }
   else		{ beta.star = median(chain.nonadapt$beta) }
+  print(paste('beta.star:', beta.star))
   gam.star = median(chain.nonadapt$gam)
+  print(paste('gam.star:', gam.star))
   theta.star = median(chain.nonadapt$theta)
+  print(paste('theta.star:', theta.star))
   N.aux = nrow(chain.nonadapt$beta)
 
   # LIKELIHOOD ORDINATE
@@ -495,7 +498,6 @@ RMWreg_logML <- function(Chain,
     LP.ord = LP.ord + HiddenLogPriorTheta(theta.star, gam.star, HypTheta, PriorCV, Mixing)
   }
   print("Prior ordinate ready!")
-
 
   if(!(Mixing %in% c("None", "Exponential")))
   {
@@ -524,12 +526,10 @@ RMWreg_logML <- function(Chain,
                                                                                mean = chain.nonadapt$theta[i],
                                                                                sd = sqrt(exp(ls.theta0)))
       theta.aux = rnorm(n = 1, mean = theta.star, sd = sqrt(exp(ls.theta0)) )
-      if(theta.aux <= 2/gam.star & Mixing == "Gamma") { po2.theta[i] = 0 }
+      if(((theta.aux <= 2/gam.star) & (Mixing == "Gamma")) |
+         ((theta.aux <= 1) & (Mixing == "InvGamma"))) { po2.theta[i] = 0 }
       else
       {
-        if(theta.aux <= 1 & Mixing == "InvGamma") { po2.theta[i] = 0 }
-        else
-        {
           if(theta.aux <= 0) { po2.theta[i] = 0 }
           else
           {
@@ -538,10 +538,9 @@ RMWreg_logML <- function(Chain,
                                                   lambda = t(chain.theta$lambda[i,]),
                                                   PriorCV, HypTheta, Mixing)
           }
-        }
       }
     }
-    LPO.theta = log(mean(po1.theta)/mean(po2.theta))
+    LPO.theta = log(mean(po1.theta) / mean(po2.theta))
     print("Posterior ordinate theta ready!")
   }
   else { chain.theta = chain.nonadapt; LPO.theta = 0 }
@@ -576,7 +575,7 @@ RMWreg_logML <- function(Chain,
                                                                             mean = chain.theta$gam[i],
                                                                             sd = sqrt(exp(ls.gam0)))
       gam.aux = rnorm(n = 1, mean = gam.star, sd = sqrt(exp(ls.gam0)))
-      if(gam.aux <= 0.06 | gam.aux <= 2/theta.star & Mixing == "Gamma") { po2.gam[i]=0 }
+      if((gam.aux <= 2/theta.star) & (Mixing == "Gamma")) { po2.gam[i]=0 }
       else
       {
         if(gam.aux <= 0.06) { po2.gam[i] = 0 }
@@ -595,13 +594,12 @@ RMWreg_logML <- function(Chain,
     LPO.gam = log(mean(po1.gam) / mean(po2.gam))
     print("Posterior ordinate gamma ready!")
   }
-  else { LPO.gam = 0 }
+  else { chain.gam = chain.theta; LPO.gam = 0 }
 
   # POSTERIOR ORDINATE - beta
-  if(BaseModel == "Weibull") { chain.prev = chain.gam }
-  else { chain.prev = chain.theta }
+  chain.prev = chain.gam
 
-  LPO.beta = rep(0, times = k)
+  LPO.beta = rep(1, times = k)
 
   for(j.beta in 0:(k-1))
   {
@@ -622,22 +620,29 @@ RMWreg_logML <- function(Chain,
                              FixTheta = TRUE, FixGam = TRUE, FixBetaJ = j.beta + 1)
 
     po1.beta = rep(0, times = N.aux); po2.beta = rep(0, times = N.aux)
+    po3.beta = rep(0, times = N.aux)
     for(i in 1:N.aux)
     {
       beta0 = as.vector(t(chain.prev$beta[i,]))
       beta1 = beta0; beta1[j.beta+1] = beta.star[j.beta+1]
       po1.beta[i] = HiddenAcceptProb_betaJ(beta0, beta1, gam = chain.prev$gam[i],
                                            Time, Event, DesignMat,
-                                           lambda = t(chain.prev$lambda[i,]), j = j.beta+1) *dnorm(x = beta.star[j.beta+1],
-                                                                                                   mean = as.numeric(chain.prev$beta[i,j.beta+1]),
-                                                                                                   sd = sqrt(exp(ls.beta0[j.beta+1])) )
+                                           lambda = t(chain.prev$lambda[i,]), j = j.beta+1)
+      po3.beta[i] = dnorm(x = beta.star[j.beta+1],
+                          mean = as.numeric(chain.prev$beta[i,j.beta+1]),
+                          sd = sqrt(exp(ls.beta0[j.beta+1])) )
       betaj.aux = rnorm(n = 1, mean = beta.star[j.beta+1], sd = sqrt(exp(ls.beta0[j.beta+1])) )
       beta2 = beta.star; beta2[j.beta+1] = betaj.aux
       po2.beta[i] = HiddenAcceptProb_betaJ(beta0 = beta.star, beta1 = beta2, gam = chain.next$gam[i],
                                            Time, Event, DesignMat,
                                            lambda = t(chain.next$lambda[i,]), j = j.beta+1)
+
     }
-    LPO.beta[j.beta+1] = log(mean(po1.beta) / mean(po2.beta))
+    print(paste("mean(po1.beta):", mean(po1.beta)))
+    print(paste("mean(po2.beta):", mean(po2.beta)))
+    print(paste("mean(po3.beta):", mean(po3.beta)))
+    print(paste("mean(po1.beta * po3.beta):", mean(po1.beta * po3.beta)))
+    LPO.beta[j.beta+1] = log(mean(po1.beta * po3.beta) / mean(po2.beta))
     chain.prev=chain.next
   }
   print("Posterior ordinate beta ready!")
@@ -647,7 +652,7 @@ RMWreg_logML <- function(Chain,
   print(paste("LP.ord:", LP.ord))
   print(paste("LPO.theta:", LPO.theta))
   print(paste("LPO.gam:", LPO.gam))
-  print(paste("sum(LPO.beta):", (LPO.beta)))
+  print(paste("LPO.beta:", LPO.beta))
 
   LML = LL.ord + LP.ord - LPO.theta - LPO.gam - sum(LPO.beta)
 
