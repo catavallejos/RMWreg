@@ -1,10 +1,10 @@
 Package: RMWreg
 Type: Package
 Title: Accelerated failure times survival regression using Rate Mixtures of Weibull distributions
-Version: 0.0.12
-Date: 2016-09-30
+Version: 0.0.13
+Date: 2016-10-05
 Author: Catalina A. Vallejos
-Maintainer: Catalina A. Vallejos <cata.vallejos.m@gmail.com>
+Maintainer: Catalina A. Vallejos <cnvallej@uc.cl>
 Description: Accelerated failure times survival regression using Rate Mixtures of Weibull distributions
 License: License: GPL (>= 2)
 Depends:

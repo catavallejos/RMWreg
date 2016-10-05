@@ -448,8 +448,8 @@ arma::vec cvStarSquare(double const& gam,
   }
   if(mixing == "LogNormal")
   {
-    aux(0) = exp(theta) - 1;
-    aux(1) = exp(theta);
+    aux(0) = exp(theta * pow(gam, -2)) - 1;
+    aux(1) = exp(theta * pow(gam, -2)) * pow(gam, -2);
   }
 
   return aux;
@@ -811,7 +811,8 @@ arma::mat lambdaUpdate_LN(arma::vec const& lambda0,
   arma::vec ind = arma::zeros(n);
 
   // PROPOSAL STEP
-  arma::vec y = exp(arma::randn(n) % sqrt(prop_var) + log(lambda0));
+  arma::vec y_aux = arma::randn(n) % sqrt(prop_var) + lambda0;
+  arma::vec y = abs(y_aux);
   arma::vec u = arma::randu(n);
 
   // ACCEPT/REJECT STEP
@@ -823,7 +824,7 @@ arma::mat lambdaUpdate_LN(arma::vec const& lambda0,
   // DEBUG: Reject very small values to avoid numerical issues
   for (int i=0; i < n; i++)
   {
-    if(arma::is_finite(log_aux(i)) & (log(u(i)) < log_aux(i)) & (y(i) > 1e-3))
+    if(arma::is_finite(log_aux(i)) & (log(u(i)) < log_aux(i)) & (y_aux(i) > 1e-3))
     {
       ind(i) = 1; lambda(i) = y(i);
     }

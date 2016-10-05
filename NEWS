@@ -39,6 +39,9 @@ version 0.0.11: (2016-09-29)
 version 0.0.12: (2016-09-30)
 - Fixed bug in RMWreg_logML function (for Mixing = "InvGamma")
 
+version 0.0.13: (2016-10-05)
+- Fixed bug in 'cvStarSquare' function (c++ code, only affects log-normal mixing)
+
 TO-DO
 - Extend RMWreg_BFoutlier to the remaining mixing distributions
 
