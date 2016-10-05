@@ -29,7 +29,3 @@ HiddenRMWreg_BFoutlier <- function(Chain, RefLambda, Time, Event, DesignMat, Pri
     .Call('RMWreg_HiddenRMWreg_BFoutlier', PACKAGE = 'RMWreg', Chain, RefLambda, Time, Event, DesignMat, PriorCV, HypTheta, Hyp1Gam, Hyp2Gam, Mixing, BaseModel, thin, lambdaPeriod, ar)
 }
 
-rcpp_hello <- function() {
-    .Call('RMWreg_rcpp_hello', PACKAGE = 'RMWreg')
-}
-
