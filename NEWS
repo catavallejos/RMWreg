@@ -45,6 +45,9 @@ version 0.0.13: (2016-10-05)
 version 0.0.14: (2016-10-06)
 - Fixed issues in MCMC sampler for log-normal mixing (change of parametrization)
 
+version 0.0.15: (2016-10-06)
+- Fixed issues in model comparison for log-normal mixing (change of parametrization)
+
 TO-DO
 - Extend RMWreg_BFoutlier to the remaining mixing distributions
 

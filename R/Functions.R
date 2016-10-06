@@ -214,41 +214,58 @@ RMWreg_MCMC <- function(N, Thin, Burn,
 }
 
 # LOG-LIKELIHOOD
-Hiddenf.joint.RME.LN=function(lambda,Time,alpha,theta)
+Hiddenf.joint.RMW.LN = function(lambda, Time, alpha, gam, theta)
 {
-  aux = exp(-alpha*lambda*Time) * exp(-(1/(2*theta))*(log(lambda))^2)
+  aux = exp(-alpha*lambda*Time) * exp(-( 1 / (2*theta*(gam^2)) )*(log(lambda))^2)
   return(aux)
 }
 
-Hiddenf.RME.LN=function(Time,alpha,theta)
+Hiddenf.RMW.LN=function(Time, alpha, gam, theta)
 {
-  aux = alpha*(2*pi*theta)^(-1/2) * integrate(Hiddenf.joint.RME.LN,lower=0,upper=Inf,Time=Time,alpha=alpha,theta=theta)$value
+  aux = alpha*(2*pi*theta*(gam^2))^(-1/2) * integrate(Hiddenf.joint.RMW.LN,
+                                                      lower = 0, upper = Inf,
+                                                      Time = Time,
+                                                      alpha = alpha,
+                                                      gam = gam,
+                                                      theta = theta)$value
   return(aux)
 }
 
-HiddenS.joint.RME.LN=function(lambda,Time,alpha,theta)
+HiddenS.joint.RMW.LN = function(lambda, Time, alpha, gam, theta)
 {
-  aux = (lambda^(-1))*exp(-alpha*lambda*Time) * exp(-(1/(2*theta))*(log(lambda))^2)
+  aux = (lambda^(-1))*exp(-alpha*lambda*Time) * exp(-(1/(2*theta*(gam^2)))*(log(lambda))^2)
   return(aux)
 }
 
-HiddenS.RME.LN=function(Time,alpha,theta)
+HiddenS.RMW.LN=function(Time, alpha, gam, theta)
 {
-  aux = (2*pi*theta)^(-1/2) * integrate(HiddenS.joint.RME.LN,lower=0.00001,upper=Inf,Time=Time,alpha=alpha,theta=theta)$value
+  aux = (2*pi*theta*(gam^2))^(-1/2) * integrate(HiddenS.joint.RMW.LN,
+                                                lower = 0.00001, upper = Inf,
+                                                Time = Time,
+                                                alpha = alpha,
+                                                gam = gam,
+                                                theta = theta)$value
   return(aux)
 }
 
 Hiddenlog.lik.RMW.LN.aux<-function(Time, Event, DesignMat, beta, gam = 1, theta)
 {
   RATE = exp(-gam * DesignMat%*%beta)
-  f.aux <- function(i, Event, Time, RATE, theta)
+  f.aux <- function(i, Event, Time, RATE, gam, theta)
   {
-    if(Event[i]==1) {out = log(Hiddenf.RME.LN(Time=Time[i],alpha=RATE[i],theta=theta))}
-    if(Event[i]==0) {out = log(HiddenS.RME.LN(Time=Time[i],alpha=RATE[i],theta=theta))}
+    if(Event[i]==1)
+    {
+      out = log(Hiddenf.RMW.LN(Time = Time[i], alpha = RATE[i], gam = gam, theta = theta))
+    }
+    if(Event[i]==0)
+    {
+      out = log(HiddenS.RMW.LN(Time = Time[i], alpha = RATE[i], gam = gam, theta = theta))
+    }
     return(out)
   }
   aux = sapply(as.list(1:length(Time)), FUN = f.aux,
-               Event = Event, Time = Time, RATE = RATE, theta = theta, simplify = TRUE)
+               Event = Event, Time = Time, RATE = RATE,
+               gam = gam, theta = theta, simplify = TRUE)
   return(aux)
 }
 
@@ -383,6 +400,11 @@ HiddenAcceptProb_gam <- function(gam0, gam1, Time, Event, DesignMat, beta, theta
       prob = prob + HiddenLogPriorTheta(theta, gam1, HypTheta, PriorCV, Mixing)
       prob = prob - HiddenLogPriorTheta(theta, gam0, HypTheta, PriorCV, Mixing)
     }
+    if(Mixing == "LogNormal")
+    {
+      prob = prob - length(Time) * log(gam1 / gam0)
+      prob = prob - ( (gam1^(-2.0)) - (gam0^(-2.0)) ) * (0.5/theta) * sum((log(lambda))^2.0)
+    }
 
     prob = min(1,exp(prob))
   }
@@ -411,7 +433,7 @@ HiddenAcceptProb_theta <- function(theta0, theta1, gam, lambda, PriorCV, HypThet
   }
   if(Mixing == "LogNormal")
   {
-    prob = (n/2) * log(theta0/theta1) - 0.5 * (theta1^(-1) - theta0^(-1)) * sum((log(lambda))^2)
+    prob = -(n/2) * log(theta1/theta0) - 0.5 * (gam^(-2)) * (theta1^(-1) - theta0^(-1)) * sum((log(lambda))^2)
   }
 
   prob = prob + HiddenLogPriorTheta(theta1, gam, HypTheta, PriorCV, Mixing)
@@ -421,8 +443,6 @@ HiddenAcceptProb_theta <- function(theta0, theta1, gam, lambda, PriorCV, HypThet
 
   return(prob)
 }
-
-
 
 # LOG-MARGINAL LIKELIHOOD ESTIMATOR
 RMWreg_logML <- function(Chain,
