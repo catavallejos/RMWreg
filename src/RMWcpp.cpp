@@ -446,10 +446,12 @@ arma::vec cvStarSquare(double const& gam,
       aux(1) *= (K2/K1) + R::bessel_k(1/theta, -((2/gam)-0.5), 1) / K1 - 2*(K2/K1)*(1/K1)*R::bessel_k(1/theta,-((1/gam)-0.5),1);
     }
   }
+  // This is using a different parametrization with theta* = theta / gam^2
+  // See implementation section of the manuscript
   if(mixing == "LogNormal")
   {
-    aux(0) = exp(theta * pow(gam, -2)) - 1;
-    aux(1) = exp(theta * pow(gam, -2)) * pow(gam, -2);
+    aux(0) = exp(theta) - 1;
+    aux(1) = exp(theta);
   }
 
   return aux;
@@ -679,6 +681,7 @@ arma::vec gamUpdate(double const& omega2,
       }
       log_aux += R::dgamma(y, Hyp1Gam, Hyp2Gam, 1);
       log_aux -= R::dgamma(gam0, Hyp1Gam, Hyp2Gam, 1);
+      // This factor comes from the different parameterization that is used for LN mixing
       if(mixing == "LogNormal")
       {
         log_aux -= Time.n_elem * log(y / gam0);
@@ -736,10 +739,11 @@ arma::vec thetaUpdate(double const& omega2,
     log_aux = 0.5 * (pow(theta0,-2) - pow(y,-2)) * sum(lambda);
     log_aux -= n * (pow(theta0,-1) - pow(y,-1));
   }
+  // Using a different parametrization
   if(mixing == "LogNormal")
   {
-    log_aux = (n/2) * log(theta0/y);
-    log_aux -= 0.5 * (pow(y,-1) - pow(theta0,-1)) * sum(pow(log(lambda),2));
+    log_aux = -(n/2) * log(y/theta0);
+    log_aux -= 0.5 * pow(gam, -2) * (pow(y,-1) - pow(theta0,-1)) * sum(pow(log(lambda),2));
   }
   // PRIOR FACTOR
   log_aux += HiddenLogPriorTheta(y, gam, HypTheta, PriorCV, mixing);
@@ -811,20 +815,19 @@ arma::mat lambdaUpdate_LN(arma::vec const& lambda0,
   arma::vec ind = arma::zeros(n);
 
   // PROPOSAL STEP
-  arma::vec y_aux = arma::randn(n) % sqrt(prop_var) + lambda0;
-  arma::vec y = abs(y_aux);
+  arma::vec y = exp(arma::randn(n) % sqrt(prop_var) + log(lambda0));
   arma::vec u = arma::randu(n);
 
   // ACCEPT/REJECT STEP
-  arma::vec log_aux = Event % log(y/lambda0); // -1 cancels out as proposal is in log-scale // (Event-1)*log(y/lambda[l,])
+  arma::vec log_aux = (Event) % log(y/lambda0); // -1 cancels out as proposal is in log-scale // (Event-1)*log(y/lambda[l,])
   log_aux -= pow(exp(-X*beta) % Time, gam) % (y - lambda0);
-  log_aux -= (1/(2*theta)) * ( pow(log(y),2)- pow(log(lambda0),2) );
+  log_aux -= (1/(2 * theta * pow(gam, 2))) * ( pow(log(y),2)- pow(log(lambda0),2) );
 
   // CREATING OUTPUT VARIABLE & DEBUG
   // DEBUG: Reject very small values to avoid numerical issues
   for (int i=0; i < n; i++)
   {
-    if(arma::is_finite(log_aux(i)) & (log(u(i)) < log_aux(i)) & (y_aux(i) > 1e-3))
+    if(arma::is_finite(log_aux(i)) & (log(u(i)) < log_aux(i)) & (y(i) > 1e-3))
     {
       ind(i) = 1; lambda(i) = y(i);
     }
@@ -981,7 +984,8 @@ Rcpp::List HiddenRMWreg_MCMC(int N, // Total number of MCMC draws
       {
         lambdaAux_LN = lambdaUpdate_LN(lambdaAux, exp(LSlambdaAux),
                                        Time_arma, Event_arma, X_arma,
-                                       betaAux.col(0), gamAux(0), thetaAux(0), n);
+                                       betaAux.col(0), gamAux(0),
+                                       thetaAux(0), n);
         lambdaAux = lambdaAux_LN.col(0);
         PlambdaAux += lambdaAux_LN.col(1); if(i>=burn) {lambdaAccept += lambdaAux_LN.col(1);}
       }

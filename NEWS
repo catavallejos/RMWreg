@@ -42,6 +42,9 @@ version 0.0.12: (2016-09-30)
 version 0.0.13: (2016-10-05)
 - Fixed bug in 'cvStarSquare' function (c++ code, only affects log-normal mixing)
 
+version 0.0.14: (2016-10-06)
+- Fixed issues in MCMC sampler for log-normal mixing (change of parametrization)
+
 TO-DO
 - Extend RMWreg_BFoutlier to the remaining mixing distributions
 
