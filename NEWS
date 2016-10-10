@@ -48,6 +48,12 @@ version 0.0.14: (2016-10-06)
 version 0.0.15: (2016-10-06)
 - Fixed issues in model comparison for log-normal mixing (change of parametrization)
 
+version 0.0.16: (2016-10-07)
+- Storage of 'lambda' chain added to 'RMWreg_MCMC' function
+
+version 0.0.17: (2016-10-10)
+- Fixed bug in 'RMWreg_BFoutlier' function
+
 TO-DO
 - Extend RMWreg_BFoutlier to the remaining mixing distributions
 

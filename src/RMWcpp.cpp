@@ -1267,9 +1267,12 @@ double HiddenRMWreg_DIC(Rcpp::List const& Chain,
                         String const& BaseModel)
 {
   // EXTRACTING CHAINS
+  arma::vec gam; arma::vec theta;
   arma::mat beta = Rcpp::as<arma::mat>(Chain["beta"]);
-  arma::vec gam = Rcpp::as<arma::vec>(Chain["gam"]);
-  arma::vec theta = Rcpp::as<arma::vec>(Chain["theta"]);
+  if(BaseModel == "Weibull") { gam = Rcpp::as<arma::vec>(Chain["gam"]);}
+  else { gam = arma::ones(beta.n_rows); }
+  if((Mixing != "None") & (Mixing != "Exponential")) { theta = Rcpp::as<arma::vec>(Chain["theta"]);}
+  else { theta = arma::zeros(beta.n_rows); }
 
   // CALCULATING POSTERIOR MEDIANS
   arma::vec beta_hat = median(beta).t();
@@ -1306,9 +1309,12 @@ arma::mat HiddenRMWreg_CaseDeletion(Rcpp::List const& Chain,
                                     String const& BaseModel)
 {
   // EXTRACTING CHAINS
+  arma::vec gam; arma::vec theta;
   arma::mat beta = Rcpp::as<arma::mat>(Chain["beta"]);
-  arma::vec gam = Rcpp::as<arma::vec>(Chain["gam"]);
-  arma::vec theta = Rcpp::as<arma::vec>(Chain["theta"]);
+  if(BaseModel == "Weibull") { gam = Rcpp::as<arma::vec>(Chain["gam"]);}
+  else { gam = arma::ones(beta.n_rows); }
+  if((Mixing != "None") & (Mixing != "Exponential")) { theta = Rcpp::as<arma::vec>(Chain["theta"]);}
+  else { theta = arma::zeros(beta.n_rows); }
 
   // ELEMENT SIZES
   int n = Time.n_elem; int N = beta.n_rows;
@@ -1368,9 +1374,12 @@ double HiddenRMWreg_BFoutlierObs(Rcpp::List Chain,
                                  double ar)
 {
   // EXTRACTING CHAINS
+  arma::vec gam; arma::vec theta;
   arma::mat beta = Rcpp::as<arma::mat>(Chain["beta"]);
-  arma::vec gam = Rcpp::as<arma::vec>(Chain["gam"]);
-  arma::vec theta = Rcpp::as<arma::vec>(Chain["theta"]);
+  if(BaseModel == "Weibull") { gam = Rcpp::as<arma::vec>(Chain["gam"]);}
+  else { gam = arma::ones(beta.n_rows); }
+  if((Mixing != "None") & (Mixing != "Exponential")) { theta = Rcpp::as<arma::vec>(Chain["theta"]);}
+  else { theta = arma::zeros(beta.n_rows); }
 
   int N = beta.n_rows;
 

@@ -178,6 +178,11 @@ RMWreg_MCMC <- function(N, Thin, Burn,
       write.table(Chain$theta, paste0("chain_theta_", RunName, ".txt"),
                   col.names = FALSE, row.names = FALSE)
     }
+    if(Mixing != "None")
+    {
+      write.table(Chain$lambda, paste0("chain_lambda_", RunName, ".txt"),
+                  col.names = FALSE, row.names = FALSE)
+    }
     setwd(OldDir)
   }
 
@@ -277,7 +282,9 @@ Hiddenlog.lik.RMWLN<-function(Time, Event, DesignMat, beta, gam=1, theta, BaseMo
 
 HiddenRMWreg_DIC_LN <- function(Chain, Time, Event, DesignMat, Mixing, BaseModel)
 {
-  beta = Chain$beta; gam = Chain$gam; theta = Chain$theta
+  beta = Chain$beta; theta = Chain$theta
+  if(BaseModel == "Weibull") {gam = Chain$gam}
+  else {gam = rep(1, times = nrow(beta))}
   beta_hat = apply(beta,2,"median");
   gam_hat = median(gam); theta_hat = median(theta)
 
@@ -286,7 +293,7 @@ HiddenRMWreg_DIC_LN <- function(Chain, Time, Event, DesignMat, Mixing, BaseModel
                     beta, gam, theta, BaseModel)
   {
     out = Hiddenlog.lik.RMWLN(Time, Event, DesignMat,
-                              beta=beta[iter,], gam = gam[iter,], theta = theta[iter,], BaseModel)
+                              beta=beta[iter,], gam = gam[iter], theta = theta[iter], BaseModel)
     return(out)
   }
   L = sapply(as.list(1:nrow(beta)), FUN = f.aux,
@@ -318,7 +325,10 @@ RMWreg_DIC <- function(Chain, Time, Event, DesignMat, Mixing, BaseModel)
 
 HiddenRMWreg_CaseDeletion_LN <- function(Chain, Time, Event, DesignMat, Mixing, BaseModel)
 {
-  beta = Chain$beta; gam = Chain$gam; theta = Chain$theta
+  beta = Chain$beta;
+  if(BaseModel == "Weibull") {gam = Chain$gam;}
+  else {gam = rep(1, times = nrow(beta))}
+  theta = Chain$theta
 
   N = nrow(beta); n = length(Time);
   logCPO=rep(0,times=n); KL.aux=rep(0,times=n)
@@ -327,7 +337,7 @@ HiddenRMWreg_CaseDeletion_LN <- function(Chain, Time, Event, DesignMat, Mixing, 
                     beta, gam, theta, BaseModel)
   {
     out = Hiddenlog.lik.RMWLN(Time, Event, DesignMat,
-                              beta = beta[iter,], gam = gam[iter,], theta = theta[iter,],
+                              beta = beta[iter,], gam = gam[iter], theta = theta[iter],
                               BaseModel)
     return(out)
   }
@@ -452,8 +462,12 @@ RMWreg_logML <- function(Chain,
                          Thin = 10, lambdaPeriod = 5, AR = 0.44, Mixing, BaseModel)
 {
   # EXTRACTING MCMC CHAINS
-  beta = Chain$beta; gam = Chain$gam; theta = Chain$theta
-  ls.beta = Chain$ls.beta; ls.gam = Chain$ls.gam; ls.theta = Chain$ls.theta
+  beta = Chain$beta; ls.beta = Chain$ls.beta;
+  if(BaseModel == "Weibull") {gam = Chain$gam; ls.gam = Chain$ls.gam; }
+  else { gam = rep(1, times = nrow(beta)); ls.gam = rep(0, times = nrow(beta)); }
+  if(!(Mixing %in% c("None", "Exponential"))) {theta = Chain$theta; ls.theta = Chain$ls.theta}
+  else { theta = rep(0, times = nrow(beta)); ls.theta = rep(0, times = nrow(beta))}
+
 
   # SAMPLE SIZE, NUMBER OF DRAWS AND NUMBER OF REGRESSORS
   n = length(Time); N = nrow(beta); k = ncol(beta)
