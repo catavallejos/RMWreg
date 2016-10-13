@@ -459,7 +459,7 @@ RMWreg_logML <- function(Chain,
                          Time, Event, DesignMat,
                          PriorCV = "Pareto", PriorMeanCV = 1.5,
                          Hyp1Gam = 1, Hyp2Gam = 1,
-                         Thin = 10, lambdaPeriod = 5, AR = 0.44, Mixing, BaseModel)
+                         N, Thin, Burn, lambdaPeriod = 5, AR = 0.44, Mixing, BaseModel)
 {
   # EXTRACTING MCMC CHAINS
   beta = Chain$beta; ls.beta = Chain$ls.beta;
@@ -470,7 +470,7 @@ RMWreg_logML <- function(Chain,
 
 
   # SAMPLE SIZE, NUMBER OF DRAWS AND NUMBER OF REGRESSORS
-  n = length(Time); N = nrow(beta); k = ncol(beta)
+  n = length(Time); k = ncol(beta)
 
   # Hyper-parameter for theta
   if(PriorCV == "TruncExp") { HypTheta = 1 / (PriorMeanCV - 1)} # E(cv) = 1 + 1/a
@@ -487,7 +487,7 @@ RMWreg_logML <- function(Chain,
   ls.theta0 = median(ls.theta)
 
   # NON-ADAPTIVE RUN OF THE CHAIN
-  chain.nonadapt = RMWreg_MCMC(N*Thin, Thin, Burn = round(0.25*N)*Thin, Time, Event, DesignMat,
+  chain.nonadapt = RMWreg_MCMC(N, Thin, Burn, Time, Event, DesignMat,
                                Mixing = Mixing, BaseModel = BaseModel,
                                PriorCV = PriorCV, PriorMeanCV = PriorMeanCV,
                                Hyp1Gam = Hyp1Gam, Hyp2Gam = Hyp2Gam, AR = AR,
@@ -536,7 +536,7 @@ RMWreg_logML <- function(Chain,
   if(!(Mixing %in% c("None", "Exponential")))
   {
     # REDUCED CHAIN WITH FIXED THETA
-    chain.theta = RMWreg_MCMC(N*Thin, Thin, Burn = round(0.25*N)*Thin, Time, Event, DesignMat,
+    chain.theta = RMWreg_MCMC(N, Thin, Burn, Time, Event, DesignMat,
                               Mixing = Mixing, BaseModel = BaseModel,
                               PriorCV = PriorCV, PriorMeanCV = PriorMeanCV,
                               Hyp1Gam = Hyp1Gam, Hyp2Gam = Hyp2Gam, AR = AR,
@@ -582,7 +582,7 @@ RMWreg_logML <- function(Chain,
   if(BaseModel == "Weibull")
   {
     # REDUCED CHAIN WITH FIXED THETA + GAMMA
-    chain.gam = RMWreg_MCMC(N*Thin, Thin, Burn = round(0.25*N)*Thin, Time, Event, DesignMat,
+    chain.gam = RMWreg_MCMC(N, Thin, Burn, Time, Event, DesignMat,
                             Mixing = Mixing, BaseModel = BaseModel,
                             PriorCV = PriorCV, PriorMeanCV = PriorMeanCV,
                             Hyp1Gam = Hyp1Gam, Hyp2Gam = Hyp2Gam, AR = AR,
@@ -639,7 +639,7 @@ RMWreg_logML <- function(Chain,
   {
     print(j.beta)
     beta0 = t(chain.prev$beta[N.aux,]); beta0[j.beta+1] = beta.star[j.beta+1]
-    chain.next = RMWreg_MCMC(N*Thin, Thin, Burn = round(0.25*N)*Thin, Time, Event, DesignMat,
+    chain.next = RMWreg_MCMC(N, Thin, Burn, Time, Event, DesignMat,
                              Mixing = Mixing, BaseModel = BaseModel,
                              PriorCV = PriorCV, PriorMeanCV = PriorMeanCV,
                              Hyp1Gam = Hyp1Gam, Hyp2Gam = Hyp2Gam, AR = AR,

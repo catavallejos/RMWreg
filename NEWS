@@ -54,6 +54,9 @@ version 0.0.16: (2016-10-07)
 version 0.0.17: (2016-10-10)
 - Fixed bug in 'RMWreg_BFoutlier' function
 
+version 0.0.18: (2016-10-13)
+- Small changes to 'RMWreg_logML' function
+
 TO-DO
 - Extend RMWreg_BFoutlier to the remaining mixing distributions
 
