@@ -57,6 +57,9 @@ version 0.0.17: (2016-10-10)
 version 0.0.18: (2016-10-13)
 - Small changes to 'RMWreg_logML' function
 
+version 0.0.19: (2017-03-09)
+- Template added for 'RMWreg_PredictCDF' function.
+
 TO-DO
 - Extend RMWreg_BFoutlier to the remaining mixing distributions
 

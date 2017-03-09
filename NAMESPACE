@@ -5,4 +5,5 @@ useDynLib(RMWreg)
 export(RMWreg_MCMC,
        RMWreg_DIC,
        RMWreg_CaseDeletion,
-       RMWreg_logML)
+       RMWreg_logML,
+       RMWreg_PredictCDF)
