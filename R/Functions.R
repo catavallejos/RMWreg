@@ -96,10 +96,10 @@ RMWreg_MCMC <- function(N, Thin, Burn,
   args <- list(...)
 
   # Starting values
-  if ("Start" %in% names(args)) { Start = args$Start }
-  else Start = list("beta0" = rnorm(k),
-                    "gam0" = rexp(1,1)+1,
-                    "theta0" = rexp(1,1)+1)
+  if (!("Start" %in% names(args))) { Start = list("beta0" = rnorm(k),
+                                                  "gam0" = rexp(1,1)+1,
+                                                  "theta0" = rexp(1,1)+1)}
+  else {Start = args$Start}
   if((Mixing == "Gamma") & !("Start" %in% names(args))) {Start$theta0 = max(Start$theta0, 2/Start$gam0 + 1)}
   if((Mixing == "InvGamma") & !("Start" %in% names(args))) {Start$theta0 = max(Start$theta0, 1 + 1)}
 

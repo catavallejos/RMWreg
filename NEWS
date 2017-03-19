@@ -63,6 +63,9 @@ version 0.0.19: (2017-03-09)
 version 0.0.20: (2017-03-09)
 - 'RMWreg_PredictCDF' function working for BaseModel = 'Weibull' and Mixing = 'None'
 
+version 0.0.21: (2017-03-19)
+- Update in 'RMWreg_MCMC' function to allow user-defined starting values
+
 TO-DO
 - Extend RMWreg_BFoutlier to the remaining mixing distributions
 
