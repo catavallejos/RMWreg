@@ -4,7 +4,7 @@ The `RMWreg` library is provided as supplementary material to [Vallejos and Stee
 
 # Funding acknowledgment 
 
-CAV and MFJS acknowledge support from the University of Warwick. CAV also acknowledges funding from the Pontificia Universidad Católica de Chile and the Alan Turing Institute (EPRSC grant no EP/N510129/1). 
+We acknowledge support from the University of Warwick, the Pontificia Universidad Católica de Chile and the Alan Turing Institute (EPRSC grant no EP/N510129/1). 
 
 
 
