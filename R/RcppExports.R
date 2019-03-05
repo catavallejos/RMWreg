@@ -2,30 +2,30 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 HiddenLogPriorTheta <- function(theta, gam, a, type, mixing) {
-    .Call('RMWreg_HiddenLogPriorTheta', PACKAGE = 'RMWreg', theta, gam, a, type, mixing)
+    .Call('_RMWreg_HiddenLogPriorTheta', PACKAGE = 'RMWreg', theta, gam, a, type, mixing)
 }
 
 HiddenRMWreg_MCMC <- function(N, thin, burn, Time, Event, X, mixing, Hyp1Gam, Hyp2Gam, PriorCV, HypTheta, beta0, gam0, theta0, Adapt, ar, StoreAdapt, EndAdapt, LSbeta0, LSgam0, LStheta0, FixBetaJ, FixGam, FixTheta, PrintProgress, lambdaPeriod, FixLambdaI, RefLambda) {
-    .Call('RMWreg_HiddenRMWreg_MCMC', PACKAGE = 'RMWreg', N, thin, burn, Time, Event, X, mixing, Hyp1Gam, Hyp2Gam, PriorCV, HypTheta, beta0, gam0, theta0, Adapt, ar, StoreAdapt, EndAdapt, LSbeta0, LSgam0, LStheta0, FixBetaJ, FixGam, FixTheta, PrintProgress, lambdaPeriod, FixLambdaI, RefLambda)
+    .Call('_RMWreg_HiddenRMWreg_MCMC', PACKAGE = 'RMWreg', N, thin, burn, Time, Event, X, mixing, Hyp1Gam, Hyp2Gam, PriorCV, HypTheta, beta0, gam0, theta0, Adapt, ar, StoreAdapt, EndAdapt, LSbeta0, LSgam0, LStheta0, FixBetaJ, FixGam, FixTheta, PrintProgress, lambdaPeriod, FixLambdaI, RefLambda)
 }
 
 HiddenLogLik <- function(Time, Event, DesignMat, beta, gam, theta, Mixing, BaseModel) {
-    .Call('RMWreg_HiddenLogLik', PACKAGE = 'RMWreg', Time, Event, DesignMat, beta, gam, theta, Mixing, BaseModel)
+    .Call('_RMWreg_HiddenLogLik', PACKAGE = 'RMWreg', Time, Event, DesignMat, beta, gam, theta, Mixing, BaseModel)
 }
 
 HiddenRMWreg_DIC <- function(Chain, Time, Event, DesignMat, Mixing, BaseModel) {
-    .Call('RMWreg_HiddenRMWreg_DIC', PACKAGE = 'RMWreg', Chain, Time, Event, DesignMat, Mixing, BaseModel)
+    .Call('_RMWreg_HiddenRMWreg_DIC', PACKAGE = 'RMWreg', Chain, Time, Event, DesignMat, Mixing, BaseModel)
 }
 
 HiddenRMWreg_CaseDeletion <- function(Chain, Time, Event, DesignMat, Mixing, BaseModel) {
-    .Call('RMWreg_HiddenRMWreg_CaseDeletion', PACKAGE = 'RMWreg', Chain, Time, Event, DesignMat, Mixing, BaseModel)
+    .Call('_RMWreg_HiddenRMWreg_CaseDeletion', PACKAGE = 'RMWreg', Chain, Time, Event, DesignMat, Mixing, BaseModel)
 }
 
 HiddenRMWreg_BFoutlierObs <- function(Chain, Obs, RefLambda, Time, Event, DesignMat, PriorCV, HypTheta, Hyp1Gam, Hyp2Gam, Mixing, BaseModel, thin, lambdaPeriod, ar) {
-    .Call('RMWreg_HiddenRMWreg_BFoutlierObs', PACKAGE = 'RMWreg', Chain, Obs, RefLambda, Time, Event, DesignMat, PriorCV, HypTheta, Hyp1Gam, Hyp2Gam, Mixing, BaseModel, thin, lambdaPeriod, ar)
+    .Call('_RMWreg_HiddenRMWreg_BFoutlierObs', PACKAGE = 'RMWreg', Chain, Obs, RefLambda, Time, Event, DesignMat, PriorCV, HypTheta, Hyp1Gam, Hyp2Gam, Mixing, BaseModel, thin, lambdaPeriod, ar)
 }
 
 HiddenRMWreg_BFoutlier <- function(Chain, RefLambda, Time, Event, DesignMat, PriorCV, HypTheta, Hyp1Gam, Hyp2Gam, Mixing, BaseModel, thin, lambdaPeriod, ar) {
-    .Call('RMWreg_HiddenRMWreg_BFoutlier', PACKAGE = 'RMWreg', Chain, RefLambda, Time, Event, DesignMat, PriorCV, HypTheta, Hyp1Gam, Hyp2Gam, Mixing, BaseModel, thin, lambdaPeriod, ar)
+    .Call('_RMWreg_HiddenRMWreg_BFoutlier', PACKAGE = 'RMWreg', Chain, RefLambda, Time, Event, DesignMat, PriorCV, HypTheta, Hyp1Gam, Hyp2Gam, Mixing, BaseModel, thin, lambdaPeriod, ar)
 }
 

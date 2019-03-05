@@ -66,6 +66,9 @@ version 0.0.20: (2017-03-09)
 version 0.0.21: (2017-03-19)
 - Update in 'RMWreg_MCMC' function to allow user-defined starting values
 
+version 0.0.22: (2019-03-05)
+- Small updates in DESCRIPTION (R version requirement and needs compilation)
+
 TO-DO
 - Extend RMWreg_BFoutlier to the remaining mixing distributions
 

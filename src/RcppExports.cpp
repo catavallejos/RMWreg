@@ -8,7 +8,7 @@ using namespace Rcpp;
 
 // HiddenLogPriorTheta
 double HiddenLogPriorTheta(double const& theta, double const& gam, double const& a, String const& type, String const& mixing);
-RcppExport SEXP RMWreg_HiddenLogPriorTheta(SEXP thetaSEXP, SEXP gamSEXP, SEXP aSEXP, SEXP typeSEXP, SEXP mixingSEXP) {
+RcppExport SEXP _RMWreg_HiddenLogPriorTheta(SEXP thetaSEXP, SEXP gamSEXP, SEXP aSEXP, SEXP typeSEXP, SEXP mixingSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -23,7 +23,7 @@ END_RCPP
 }
 // HiddenRMWreg_MCMC
 Rcpp::List HiddenRMWreg_MCMC(int N, int thin, int burn, NumericVector Time, NumericVector Event, NumericMatrix X, String mixing, double const& Hyp1Gam, double const& Hyp2Gam, String const& PriorCV, double const& HypTheta, NumericVector beta0, double gam0, double theta0, int Adapt, double ar, int StoreAdapt, int EndAdapt, NumericVector LSbeta0, double LSgam0, double LStheta0, int FixBetaJ, int FixGam, int FixTheta, int PrintProgress, int lambdaPeriod, int FixLambdaI, double RefLambda);
-RcppExport SEXP RMWreg_HiddenRMWreg_MCMC(SEXP NSEXP, SEXP thinSEXP, SEXP burnSEXP, SEXP TimeSEXP, SEXP EventSEXP, SEXP XSEXP, SEXP mixingSEXP, SEXP Hyp1GamSEXP, SEXP Hyp2GamSEXP, SEXP PriorCVSEXP, SEXP HypThetaSEXP, SEXP beta0SEXP, SEXP gam0SEXP, SEXP theta0SEXP, SEXP AdaptSEXP, SEXP arSEXP, SEXP StoreAdaptSEXP, SEXP EndAdaptSEXP, SEXP LSbeta0SEXP, SEXP LSgam0SEXP, SEXP LStheta0SEXP, SEXP FixBetaJSEXP, SEXP FixGamSEXP, SEXP FixThetaSEXP, SEXP PrintProgressSEXP, SEXP lambdaPeriodSEXP, SEXP FixLambdaISEXP, SEXP RefLambdaSEXP) {
+RcppExport SEXP _RMWreg_HiddenRMWreg_MCMC(SEXP NSEXP, SEXP thinSEXP, SEXP burnSEXP, SEXP TimeSEXP, SEXP EventSEXP, SEXP XSEXP, SEXP mixingSEXP, SEXP Hyp1GamSEXP, SEXP Hyp2GamSEXP, SEXP PriorCVSEXP, SEXP HypThetaSEXP, SEXP beta0SEXP, SEXP gam0SEXP, SEXP theta0SEXP, SEXP AdaptSEXP, SEXP arSEXP, SEXP StoreAdaptSEXP, SEXP EndAdaptSEXP, SEXP LSbeta0SEXP, SEXP LSgam0SEXP, SEXP LStheta0SEXP, SEXP FixBetaJSEXP, SEXP FixGamSEXP, SEXP FixThetaSEXP, SEXP PrintProgressSEXP, SEXP lambdaPeriodSEXP, SEXP FixLambdaISEXP, SEXP RefLambdaSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -61,7 +61,7 @@ END_RCPP
 }
 // HiddenLogLik
 double HiddenLogLik(arma::vec const& Time, arma::vec const& Event, arma::mat const& DesignMat, arma::vec const& beta, double const& gam, double const& theta, String const& Mixing, String const& BaseModel);
-RcppExport SEXP RMWreg_HiddenLogLik(SEXP TimeSEXP, SEXP EventSEXP, SEXP DesignMatSEXP, SEXP betaSEXP, SEXP gamSEXP, SEXP thetaSEXP, SEXP MixingSEXP, SEXP BaseModelSEXP) {
+RcppExport SEXP _RMWreg_HiddenLogLik(SEXP TimeSEXP, SEXP EventSEXP, SEXP DesignMatSEXP, SEXP betaSEXP, SEXP gamSEXP, SEXP thetaSEXP, SEXP MixingSEXP, SEXP BaseModelSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -79,7 +79,7 @@ END_RCPP
 }
 // HiddenRMWreg_DIC
 double HiddenRMWreg_DIC(Rcpp::List const& Chain, arma::vec const& Time, arma::vec const& Event, arma::mat const& DesignMat, String const& Mixing, String const& BaseModel);
-RcppExport SEXP RMWreg_HiddenRMWreg_DIC(SEXP ChainSEXP, SEXP TimeSEXP, SEXP EventSEXP, SEXP DesignMatSEXP, SEXP MixingSEXP, SEXP BaseModelSEXP) {
+RcppExport SEXP _RMWreg_HiddenRMWreg_DIC(SEXP ChainSEXP, SEXP TimeSEXP, SEXP EventSEXP, SEXP DesignMatSEXP, SEXP MixingSEXP, SEXP BaseModelSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -95,7 +95,7 @@ END_RCPP
 }
 // HiddenRMWreg_CaseDeletion
 arma::mat HiddenRMWreg_CaseDeletion(Rcpp::List const& Chain, arma::vec const& Time, arma::vec const& Event, arma::mat const& DesignMat, String const& Mixing, String const& BaseModel);
-RcppExport SEXP RMWreg_HiddenRMWreg_CaseDeletion(SEXP ChainSEXP, SEXP TimeSEXP, SEXP EventSEXP, SEXP DesignMatSEXP, SEXP MixingSEXP, SEXP BaseModelSEXP) {
+RcppExport SEXP _RMWreg_HiddenRMWreg_CaseDeletion(SEXP ChainSEXP, SEXP TimeSEXP, SEXP EventSEXP, SEXP DesignMatSEXP, SEXP MixingSEXP, SEXP BaseModelSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -111,7 +111,7 @@ END_RCPP
 }
 // HiddenRMWreg_BFoutlierObs
 double HiddenRMWreg_BFoutlierObs(Rcpp::List Chain, int const& Obs, arma::vec const& RefLambda, arma::vec const& Time, arma::vec const& Event, arma::mat const& DesignMat, String const& PriorCV, double const& HypTheta, double const& Hyp1Gam, double const& Hyp2Gam, String const& Mixing, String const& BaseModel, int thin, int lambdaPeriod, double ar);
-RcppExport SEXP RMWreg_HiddenRMWreg_BFoutlierObs(SEXP ChainSEXP, SEXP ObsSEXP, SEXP RefLambdaSEXP, SEXP TimeSEXP, SEXP EventSEXP, SEXP DesignMatSEXP, SEXP PriorCVSEXP, SEXP HypThetaSEXP, SEXP Hyp1GamSEXP, SEXP Hyp2GamSEXP, SEXP MixingSEXP, SEXP BaseModelSEXP, SEXP thinSEXP, SEXP lambdaPeriodSEXP, SEXP arSEXP) {
+RcppExport SEXP _RMWreg_HiddenRMWreg_BFoutlierObs(SEXP ChainSEXP, SEXP ObsSEXP, SEXP RefLambdaSEXP, SEXP TimeSEXP, SEXP EventSEXP, SEXP DesignMatSEXP, SEXP PriorCVSEXP, SEXP HypThetaSEXP, SEXP Hyp1GamSEXP, SEXP Hyp2GamSEXP, SEXP MixingSEXP, SEXP BaseModelSEXP, SEXP thinSEXP, SEXP lambdaPeriodSEXP, SEXP arSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -136,7 +136,7 @@ END_RCPP
 }
 // HiddenRMWreg_BFoutlier
 arma::vec HiddenRMWreg_BFoutlier(Rcpp::List Chain, arma::vec const& RefLambda, arma::vec const& Time, arma::vec const& Event, arma::mat const& DesignMat, String const& PriorCV, double const& HypTheta, double const& Hyp1Gam, double const& Hyp2Gam, String const& Mixing, String const& BaseModel, int thin, int lambdaPeriod, double ar);
-RcppExport SEXP RMWreg_HiddenRMWreg_BFoutlier(SEXP ChainSEXP, SEXP RefLambdaSEXP, SEXP TimeSEXP, SEXP EventSEXP, SEXP DesignMatSEXP, SEXP PriorCVSEXP, SEXP HypThetaSEXP, SEXP Hyp1GamSEXP, SEXP Hyp2GamSEXP, SEXP MixingSEXP, SEXP BaseModelSEXP, SEXP thinSEXP, SEXP lambdaPeriodSEXP, SEXP arSEXP) {
+RcppExport SEXP _RMWreg_HiddenRMWreg_BFoutlier(SEXP ChainSEXP, SEXP RefLambdaSEXP, SEXP TimeSEXP, SEXP EventSEXP, SEXP DesignMatSEXP, SEXP PriorCVSEXP, SEXP HypThetaSEXP, SEXP Hyp1GamSEXP, SEXP Hyp2GamSEXP, SEXP MixingSEXP, SEXP BaseModelSEXP, SEXP thinSEXP, SEXP lambdaPeriodSEXP, SEXP arSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -157,4 +157,20 @@ BEGIN_RCPP
     rcpp_result_gen = Rcpp::wrap(HiddenRMWreg_BFoutlier(Chain, RefLambda, Time, Event, DesignMat, PriorCV, HypTheta, Hyp1Gam, Hyp2Gam, Mixing, BaseModel, thin, lambdaPeriod, ar));
     return rcpp_result_gen;
 END_RCPP
+}
+
+static const R_CallMethodDef CallEntries[] = {
+    {"_RMWreg_HiddenLogPriorTheta", (DL_FUNC) &_RMWreg_HiddenLogPriorTheta, 5},
+    {"_RMWreg_HiddenRMWreg_MCMC", (DL_FUNC) &_RMWreg_HiddenRMWreg_MCMC, 28},
+    {"_RMWreg_HiddenLogLik", (DL_FUNC) &_RMWreg_HiddenLogLik, 8},
+    {"_RMWreg_HiddenRMWreg_DIC", (DL_FUNC) &_RMWreg_HiddenRMWreg_DIC, 6},
+    {"_RMWreg_HiddenRMWreg_CaseDeletion", (DL_FUNC) &_RMWreg_HiddenRMWreg_CaseDeletion, 6},
+    {"_RMWreg_HiddenRMWreg_BFoutlierObs", (DL_FUNC) &_RMWreg_HiddenRMWreg_BFoutlierObs, 15},
+    {"_RMWreg_HiddenRMWreg_BFoutlier", (DL_FUNC) &_RMWreg_HiddenRMWreg_BFoutlier, 14},
+    {NULL, NULL, 0}
+};
+
+RcppExport void R_init_RMWreg(DllInfo *dll) {
+    R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
+    R_useDynamicSymbols(dll, FALSE);
 }
