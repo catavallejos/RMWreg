@@ -11,12 +11,12 @@ Depends:
     R (>= 3.5),
 Imports:
     Rcpp (>= 0.12.5)
-LinkingTo:
-    Rcpp
 Suggests:
     knitr,
     testthat
-LinkingTo: Rcpp, RcppArmadillo
+LinkingTo: 
+    Rcpp,
+    RcppArmadillo
 VignetteBuilder: knitr
 RoxygenNote: 5.0.1
 NeedsCompilation: yes
